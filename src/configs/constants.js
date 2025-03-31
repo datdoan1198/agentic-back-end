@@ -98,7 +98,7 @@ export const UUID_TRANSLATOR = short()
 export const STATUS_DEFAULT_MESSAGE = {
     401: 'Vui lòng đăng nhập để tiếp tục.',
     403: 'Xin lỗi, bạn không được phép truy cập.',
-    404: 'Đường dẫn không tồn tại.',
+    404: 'Đường dẫn không tồn tại xxxx.',
     429: 'Có quá nhiều yêu cầu. Vui lòng thử lại sau.',
     500: 'Đã xảy ra lỗi. Vui lòng thử lại sau.',
 }

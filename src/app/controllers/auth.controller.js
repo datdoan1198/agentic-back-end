@@ -10,7 +10,7 @@ export async function callback(req, res) {
     try {
         const CLIENT_ID = '1162832692148543'
         const CLIENT_SECRET = '0798f14d54bfea311bbc6550ad982ebb'
-        const REDIRECT_URI = 'http://localhost:3456/auth/callback'
+        const REDIRECT_URI = ' https://f36b-2402-800-61ae-9d37-b52c-6f7a-c790-2c38.ngrok-free.app/callback'
 
         const tokenResponse = await axios.get(
             'https://graph.facebook.com/v20.0/oauth/access_token',
