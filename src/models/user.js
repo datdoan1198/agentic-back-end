@@ -12,15 +12,11 @@ const User = createModel(
         email: {
             type: String,
             lowercase: true,
-            required: function() {
-                return !this.phone
-            }
+            required: true,
         },
         phone: {
             type: String,
-            required: function() {
-                return !this.email
-            }
+            default: ''
         },
         gender: {
             type: String,

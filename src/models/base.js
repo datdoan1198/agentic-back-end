@@ -50,3 +50,8 @@ export const EVENT_TYPE = {
     INTERNAL: 'INTERNAL',
     PUBLIC: 'PUBLIC'
 }
+
+export const GENDER = {
+    FEMALE: 'FEMALE',
+    MALE: 'MALE',
+}

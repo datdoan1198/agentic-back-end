@@ -1,10 +1,11 @@
 import moment from 'moment'
 import jwt from 'jsonwebtoken'
-import {cache, LOGIN_EXPIRE_IN, TOKEN_TYPE, VALIDATE_EMAIL_REGEX} from '@/configs'
+import {cache, LOGIN_EXPIRE_IN, TOKEN_TYPE} from '@/configs'
 import {abort, generateToken} from '@/utils/helpers'
 import {Admin, Permission, STATUS_ACCOUNT, User} from '@/models'
+import { FileUpload } from '@/utils/classes'
 
-export const tokenBlocklist = cache.create('token-block-list')
+export const tokenBlockList = cache.create('token-block-list')
 
 export async function checkValidLoginAdmin({phone, password}) {
     const user = await Admin.findOne({phone, deleted: false})
@@ -47,15 +48,8 @@ export async function profileAdmin(currentAdmin) {
     return acc
 }
 
-export async function checkValidLoginUser({username, password}) {
-    // Tìm user theo phone hoặc email
-    const user = await User.findOne({
-        $or: [
-            { phone: username, deleted: false },
-            { email: username, deleted: false }
-        ]
-    })
-
+export async function checkValidLoginUser({email, password}) {
+    const user = await User.findOne({email, deleted: false})
     if (user) {
         const verified = user.verifyPassword(password)
         if (verified) {
@@ -84,34 +78,42 @@ export async function blockToken(token) {
     const decoded = jwt.decode(token)
     const expiresIn = decoded.exp
     const now = moment().unix()
-    await tokenBlocklist.set(token, 1, expiresIn - now)
+    await tokenBlockList.set(token, 1, expiresIn - now)
 }
 
-export async function registerUser(userData) {
-    // Xác định username là email hay phone
-    const isEmail = VALIDATE_EMAIL_REGEX.test(userData.username)
-    
-    // Kiểm tra email/phone đã tồn tại chưa
-    if (isEmail) {
-        const existingEmail = await User.findOne({ email: userData.username, deleted: false })
-        if (existingEmail) {
-            abort(400, 'Email đã được sử dụng.')
-        }
-        // Gán giá trị cho email và để phone là rỗng
-        userData.email = userData.username
-        userData.phone = ''
-    } else {
-        const existingPhone = await User.findOne({ phone: userData.username, deleted: false })
-        if (existingPhone) {
-            abort(400, 'Số điện thoại đã được sử dụng.')
-        }
-        // Gán giá trị cho phone và để email là rỗng
-        userData.phone = userData.username
-        userData.email = ''
-    }
-    
-    // Tạo user mới
-    const user = await User.create(userData)
-        
+export async function registerUser(body, session) {
+    const {name, email, password} = body
+    const user = new User({
+        name, email, password
+    })
+    await user.save({ session })
+
     return user
+}
+
+export async function profileUser(currentUser) {
+    const user = await User.findById(currentUser._id).select('-password')
+        .lean()
+
+    return user
+}
+
+export async function updateProfileUser(session, currentUser, requestBody) {
+    const {name, email, avatar} = requestBody
+
+    const user = await User.findById(currentUser._id)
+
+    if (avatar === 'remove') {
+        await FileUpload.remove(User.avatar)
+        User.avatar = ''
+    } else if (avatar) {
+        if (user.avatar) {
+            await FileUpload.remove(user.avatar)
+        }
+        user.avatar = await avatar.save()
+    }
+
+    user.name = name || user.name
+    user.name = email || user.email
+    await user.save({session})
 }
