@@ -93,6 +93,7 @@ export async function registerUser(body, session) {
 
 export async function profileUser(currentUser) {
     const user = await User.findById(currentUser._id).select('-password')
+        .populate('botChats')
         .lean()
 
     return user

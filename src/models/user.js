@@ -77,6 +77,13 @@ const User = createModel(
                     return this._permissions
                 },
             },
+            botChats: {
+                options: {
+                    ref: 'Bot',
+                    localField: '_id',
+                    foreignField: 'user_id',
+                },
+            },
         },
     }
 )
