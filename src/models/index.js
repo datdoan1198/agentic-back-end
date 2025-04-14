@@ -5,4 +5,7 @@ export {default as Permission} from './permission'
 export {default as Role} from './role'
 export {default as Admin} from './admin'
 export {default as User} from './user'
+export {default as Bot} from './bot'
+export {default as WebKnowledge} from './web-knowledge'
+export {default as FacebookService} from './facebook_service'
 

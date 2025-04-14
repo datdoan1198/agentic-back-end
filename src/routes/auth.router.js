@@ -1,5 +1,4 @@
 import {Router} from 'express'
-import * as auth from '@/app/controllers/auth.controller'
 import * as authUser from '@/app/controllers/user/auth.controller'
 import {asyncHandler} from '@/utils/helpers'
 import * as authUserMiddleware from '@/app/middleware/user/auth.middleware'
@@ -10,7 +9,7 @@ const authRouter = Router()
 
 authRouter.get(
     '/callback',
-    auth.callback
+    authUser.callbackFB
 )
 
 authRouter.post(

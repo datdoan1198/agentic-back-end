@@ -46,9 +46,9 @@ export const STATUS_ACCOUNT = {
     DE_ACTIVE: 'DE_ACTIVE',
 }
 
-export const EVENT_TYPE = {
-    INTERNAL: 'INTERNAL',
-    PUBLIC: 'PUBLIC'
+export const STATUS_BOT = {
+    ACTIVE: 'ACTIVE',
+    DE_ACTIVE: 'DE_ACTIVE',
 }
 
 export const GENDER = {
