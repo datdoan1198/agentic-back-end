@@ -1,4 +1,4 @@
-import createModel, {ObjectId,} from './base'
+import createModel, { ObjectId, SCAN_TYPE, STATUS_WEB_KNOWLEDGE } from './base'
 
 const WebKnowledge = createModel(
     'WebKnowledge',
@@ -10,21 +10,34 @@ const WebKnowledge = createModel(
         },
         title: {
             type: String,
-            default: ''
+            default: '',
         },
         description: {
             type: String,
-            default: ''
+            default: '',
         },
         content: {
             type: String,
-            default: ''
+            default: '',
+        },
+        status: {
+            type: String,
+            enum: Object.values(STATUS_WEB_KNOWLEDGE),
+            required: true,
+            default: STATUS_WEB_KNOWLEDGE.UNTRAINED,
+        },
+        scan_type: {
+            type: String,
+            enum: Object.values(SCAN_TYPE),
+            required: true,
+            default: SCAN_TYPE.ALL,
         },
         bot_id: {
             type: ObjectId,
             required: true,
         },
-    },{
+    },
+    {
         virtuals: {
             bot: {
                 options: {

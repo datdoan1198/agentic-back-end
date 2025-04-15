@@ -2,20 +2,20 @@ import mongoose from 'mongoose'
 
 export default function createModel(name, collection, definition, options) {
     const schema = new mongoose.Schema(definition, {
-        timestamps: {createdAt: 'created_at', updatedAt: 'updated_at'},
+        timestamps: { createdAt: 'created_at', updatedAt: 'updated_at' },
         versionKey: false,
         id: false,
-        toJSON: {getters:true, virtuals: true},
+        toJSON: { getters: true, virtuals: true },
         ...(options ?? {}),
     })
 
     return mongoose.model(name, schema, collection)
 }
 
-export const {ObjectId} = mongoose.Types
+export const { ObjectId } = mongoose.Types
 
 export const ROLE = {
-    SUPER_ADMIN: 'super-admin'
+    SUPER_ADMIN: 'super-admin',
 }
 
 export const PERMISSION = {
@@ -33,12 +33,12 @@ export const PERMISSION = {
 export const USER_PERMISSION = {
     // Club management
     REMOVE_MEMBER: 'remove-member',
-    ACCEPT_MEMBER: 'accept-member'
+    ACCEPT_MEMBER: 'accept-member',
 }
 
 export const USER_ROLE = {
     MANAGER: 'club-manager',
-    CENSOR: 'club-censor'
+    CENSOR: 'club-censor',
 }
 
 export const STATUS_ACCOUNT = {
@@ -54,4 +54,14 @@ export const STATUS_BOT = {
 export const GENDER = {
     FEMALE: 'FEMALE',
     MALE: 'MALE',
+}
+
+export const STATUS_WEB_KNOWLEDGE = {
+    TRAINED: 'TRAINED',
+    UNTRAINED: 'UNTRAINED',
+}
+
+export const SCAN_TYPE = {
+    ALL: 'ALL',
+    ONE: 'ONE',
 }

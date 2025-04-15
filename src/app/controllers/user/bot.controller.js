@@ -1,13 +1,14 @@
 import * as botService from '@/app/services/bot.service'
 import * as fbService from '@/app/services/facebook.service'
-import {db} from '@/configs'
-import {FacebookService} from '@/models'
+import { db } from '@/configs'
+import { FacebookService } from '@/models'
 import OpenAI from 'openai'
 
-export async function getListBotChats (req, res) {
+export async function getListBotChats(req, res) {
     res.status(201).jsonify(await botService.filter(req.currentUser))
 }
 
+// ========== POST [Bot] =========== //
 export async function create(req, res) {
     await db.transaction(async function (session) {
         const result = await botService.createBot(req.currentUser, req.infoUrl, session)
@@ -15,8 +16,51 @@ export async function create(req, res) {
     })
 }
 
+// =========== GET [Bot - Details] =========== //
 export async function getDetailBot(req, res) {
     res.status(201).jsonify(await botService.getDetailBot(req.params.botId))
+}
+
+// =========== GET [Bot - Delete] =========== //
+export async function deleteBot(req, res) {
+    await db.transaction(async function (session) {
+        const result = await botService.deleteBot(req.currentUser, req.bot, session)
+        res.status(200).jsonify(result, 'Delete bot success')
+    })
+}
+
+// ========== GET [Bot - Links] =========== //
+export async function getLinks(req, res) {
+    const result = await botService.getLinks(req.bot, req.query)
+    res.status(200).jsonify(result)
+}
+
+// ========== POST [Bot - Links] =========== //
+export async function createLink(req, res) {
+    await db.transaction(async function (session) {
+        const result = await botService.createLink(req.bot, req.body, session)
+        res.status(201).jsonify(result)
+    })
+}
+
+// ========== GET [Link - View Content] =========== //
+export async function viewLinkContent(req, res) {
+    const result = await botService.viewLinkContent(req.bot, req.params.linkId)
+    res.status(200).jsonify(result)
+}
+
+// ========= GET [Link - Re-Scan] =========== //
+export async function rescanLink(req, res) {
+    await db.transaction(async function (session) {
+        const result = await botService.rescanLink(req.bot, req.params.linkId, session)
+        res.status(200).jsonify(result)
+    })
+}
+
+// ========== DELETE [Links - Delete] =========== //
+export async function deleteLink(req, res) {
+    const result = await botService.deleteLink(req.currentUser, req.bot, req.params.linkId)
+    res.status(200).jsonify(result, 'Delete link success')
 }
 
 export async function getPageFb(req, res) {
@@ -46,14 +90,14 @@ export function verifyPageFb(req, res) {
 
 export async function receiveMessageFb(req, res) {
     try {
-        const {object, entry } = req.body
+        const { object, entry } = req.body
 
         if (object !== 'page') {
             return res.sendStatus(404)
         }
 
         for (const item of entry) {
-            const fbConfig = await FacebookService.findOne({page_id: item.id})
+            const fbConfig = await FacebookService.findOne({ page_id: item.id })
 
             if (!fbConfig || !fbConfig.page_access_token) {
                 continue
@@ -65,7 +109,11 @@ export async function receiveMessageFb(req, res) {
                     // const userMessage = event.message.text
 
                     if (parseInt(senderId) !== fbConfig.page_id) {
-                        await fbService.sendMessage(fbConfig.page_access_token, senderId, 'Xin chào! Cảm ơn bạn đã nhắn tin cho chúng tôi. 😊')
+                        await fbService.sendMessage(
+                            fbConfig.page_access_token,
+                            senderId,
+                            'Xin chào! Cảm ơn bạn đã nhắn tin cho chúng tôi. 😊'
+                        )
                     }
                 }
             }
@@ -78,7 +126,7 @@ export async function receiveMessageFb(req, res) {
 }
 
 const openai = new OpenAI({
-    apiKey: process.env.OPENAI_API_KEY
+    apiKey: process.env.OPENAI_API_KEY,
 })
 
 export async function demo(req, res) {
@@ -96,4 +144,3 @@ export async function demo(req, res) {
         return res.sendStatus(500)
     }
 }
-
