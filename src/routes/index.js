@@ -3,7 +3,7 @@ import botRouter from './bot.router'
 
 function route(app) {
     app.use('/auth', authRouter)
-    app.use('/bot', botRouter)
+    app.use('/bots', botRouter)
 }
 
 export default route

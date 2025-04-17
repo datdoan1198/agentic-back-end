@@ -1,13 +1,13 @@
-import {abort} from '@/utils/helpers'
-import {Bot, STATUS_BOT} from '@/models'
-import {handleGetInfoPage} from '@/app/services/bot.service'
-import {isValidObjectId} from 'mongoose'
+import { abort } from '@/utils/helpers'
+import { Bot, STATUS_BOT } from '@/models'
+import { handleGetInfoPage } from '@/app/services/bot.service'
+import { isValidObjectId } from 'mongoose'
 
 export async function checkUrlBotExist(req, res, next) {
     const bot = await Bot.findOne({
-        url: { $regex: `^${req.body.url.replace(/\/+$/, '')}`, $options: 'i' }
+        user_id: req.currentUser._id,
+        url: { $regex: `^${req.body.url.replace(/\/+$/, '')}`, $options: 'i' },
     })
-
     if (!bot) {
         req.infoUrl = await handleGetInfoPage(req.body.url)
         next()
