@@ -8,7 +8,6 @@ export async function getListBotChats(req, res) {
     res.status(201).jsonify(await botService.filter(req.currentUser))
 }
 
-// ========== POST [Bot] =========== //
 export async function create(req, res) {
     await db.transaction(async function (session) {
         const result = await botService.createBot(req.currentUser, req.infoUrl, session)
@@ -16,12 +15,10 @@ export async function create(req, res) {
     })
 }
 
-// =========== GET [Bot - Details] =========== //
 export async function getDetailBot(req, res) {
     res.status(201).jsonify(await botService.getDetailBot(req.params.botId))
 }
 
-// =========== GET [Bot - Delete] =========== //
 export async function deleteBot(req, res) {
     await db.transaction(async function (session) {
         const result = await botService.deleteBot(req.currentUser, req.bot, session)
@@ -29,27 +26,23 @@ export async function deleteBot(req, res) {
     })
 }
 
-// ========== GET [Bot - Links] =========== //
 export async function getLinks(req, res) {
     const result = await botService.getLinks(req.bot, req.query)
     res.status(200).jsonify(result)
 }
 
-// ========== POST [Bot - Links] =========== //
 export async function createLink(req, res) {
     await db.transaction(async function (session) {
-        const result = await botService.createLink(req.bot, req.body, session)
-        res.status(201).jsonify(result)
+        await botService.createLink(req.bot, req.body, session)
+        res.status(201).jsonify('Create link success')
     })
 }
 
-// ========== GET [Link - View Content] =========== //
 export async function viewLinkContent(req, res) {
     const result = await botService.viewLinkContent(req.bot, req.params.linkId)
     res.status(200).jsonify(result)
 }
 
-// ========= GET [Link - Re-Scan] =========== //
 export async function rescanLink(req, res) {
     await db.transaction(async function (session) {
         const result = await botService.rescanLink(req.bot, req.params.linkId, session)
@@ -57,7 +50,6 @@ export async function rescanLink(req, res) {
     })
 }
 
-// ========== DELETE [Links - Delete] =========== //
 export async function deleteLink(req, res) {
     const result = await botService.deleteLink(req.currentUser, req.bot, req.params.linkId)
     res.status(200).jsonify(result, 'Delete link success')

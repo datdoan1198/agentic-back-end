@@ -47,48 +47,16 @@ export async function getLinks(bot, query) {
     const { page, per_page, status } = query
     const keySearch = query.q || ''
 
-    const links = await WebKnowledge.aggregate([
-        {
-            $match: {
-                bot_id: bot._id,
-                ...(status && { status }),
-                ...(keySearch && { url: { $regex: keySearch, $options: 'i' } }),
-            },
-        },
-        {
-            $lookup: {
-                from: 'bots',
-                localField: 'bot_id',
-                foreignField: '_id',
-                as: 'bot',
-            },
-        },
-        {
-            $unwind: '$bot',
-        },
-        {
-            $project: {
-                _id: 1,
-                url: 1,
-                title: 1,
-                description: 1,
-                // content: 1,
-                status: 1,
-                scan_type: 1,
-                updated_at: 1,
-                bot_id: 1,
-            },
-        },
-        {
-            $sort: { created_at: -1 },
-        },
-        {
-            $skip: (page - 1) * per_page,
-        },
-        {
-            $limit: per_page,
-        },
-    ])
+    const links = await WebKnowledge.find({
+        bot_id: bot._id,
+        ...(status && { status }),
+        ...(keySearch && { url: { $regex: keySearch, $options: 'i' } }),
+    })
+        .lean()
+        .session(query.session)
+        .select('url title description status scan_type updated_at bot_id')
+        .skip((page - 1) * per_page)
+        .limit(per_page)
 
     const total = await WebKnowledge.countDocuments({
         bot_id: bot._id,
@@ -101,22 +69,23 @@ export async function getLinks(bot, query) {
 export async function createLink(currentBot, { url, scan_type }, session) {
     switch (scan_type) {
         case SCAN_TYPE.ONE:
-            return await createLinkScanOne(currentBot, { url }, session)
+            await createLinkScanOne(currentBot, { url }, session)
+            break
         case SCAN_TYPE.ALL:
-            return await createLinkScanAll(currentBot, { url }, session)
+            await createLinkScanAll(currentBot, { url }, session)
+            break
         default:
             throw new Error('Scan type is not valid')
     }
 }
 
-// ========= POST [Links - Scan one] =========== //
 export async function createLinkScanOne(currentBot, { url }, session) {
     const infoUrl = await handleGetInfoPage(url)
     const convertLink = url.endsWith('/') ? url.slice(0, -1) : url
     const convertUrl = infoUrl.url.endsWith('/') ? infoUrl.url.slice(0, -1) : infoUrl.url
 
     if (convertUrl === convertLink) {
-        const knowledge = await createKnowledgeWeb(
+        await createKnowledgeWeb(
             {
                 url: infoUrl.url,
                 title: infoUrl.name,
@@ -127,24 +96,31 @@ export async function createLinkScanOne(currentBot, { url }, session) {
             currentBot,
             session
         )
-        return { link: knowledge }
     } else {
-        const knowledge = await createKnowledgeWeb({ url }, currentBot, session)
-        return { link: knowledge }
+        await createKnowledgeWeb({ url }, currentBot, session)
     }
 }
 
-// ========= GET [Link - Scan all] =========== //
 export async function createLinkScanAll(currentBot, { url }, session) {
+    const currentLinks = await WebKnowledge.find({
+        bot_id: currentBot._id,
+        url: { $regex: new RegExp(url, 'i') },
+    })
+        .lean()
+        .session(session)
+        .select('url')
+
     const links = await handleGetAllUrlInPage(url)
     if (links && links.length > 0) {
-        for (const link of links) {
-            await createLinkScanOne(currentBot, { url: link }, session)
+        await createLinkScanOne(currentBot, { url }, session)
+        for (const link of links.slice(1)) {
+            if (!currentLinks.some((currentLink) => currentLink.url === link) && link !== url) {
+                await createKnowledgeWeb({ url: link }, currentBot, session)
+            }
         }
     }
 }
 
-// ========== GET [Link - View Content] =========== //
 export async function viewLinkContent(currentBot, linkId) {
     const link = await WebKnowledge.findOne({
         _id: linkId,
@@ -156,7 +132,6 @@ export async function viewLinkContent(currentBot, linkId) {
     return link
 }
 
-// ========= GET [Link - Re-Scan] =========== //
 export async function rescanLink(currentBot, linkId, session) {
     const link = await WebKnowledge.findOne({
         _id: linkId,
@@ -193,7 +168,6 @@ export async function rescanLink(currentBot, linkId, session) {
     }
 }
 
-// ========== DELETE [Links - Delete] =========== //
 export async function deleteLink(currentUser, currentBot, linkId) {
     const bot = await Bot.findOne({
         _id: currentBot._id,
@@ -210,7 +184,6 @@ export async function deleteLink(currentUser, currentBot, linkId) {
     return { link_id: linkId }
 }
 
-// ========= POST [Bot - Create] =========== //
 export async function createBot(currentUser, infoUrl, session) {
     const bot = new Bot({
         ...infoUrl,
@@ -218,29 +191,6 @@ export async function createBot(currentUser, infoUrl, session) {
     })
     await bot.save({ session })
     await createLink(bot, { url: infoUrl.url, scan_type: SCAN_TYPE.ALL }, session)
-
-    // if (links && links.length > 0) {
-    //     for (const link of links) {
-    //         // const convertLink = link.endsWith('/') ? link.slice(0, -1) : link
-    //         // const convertUrl = infoUrl.url.endsWith('/') ? infoUrl.url.slice(0, -1) : infoUrl.url
-
-    //         // if (convertUrl === convertLink) {
-    //         //     await createKnowledgeWeb(
-    //         //         {
-    //         //             url: infoUrl.url,
-    //         //             title: infoUrl.name,
-    //         //             description: infoUrl.description,
-    //         //             url_logo: infoUrl.logo,
-    //         //             content: infoUrl.content,
-    //         //         },
-    //         //         bot,
-    //         //         session
-    //         //     )
-    //         // } else {
-    //         //     await createKnowledgeWeb({ url: link }, bot, session)
-    //         // }
-    //     }
-    // }
 
     return bot
 }

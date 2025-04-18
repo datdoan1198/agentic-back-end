@@ -18,7 +18,6 @@ export const selectPageFB = Joi.object({
     page_id: Joi.string().required().label('ID fanpage'),
 })
 
-// ========== GET LINKS ========== //
 export const getLinks = Joi.object({
     page: Joi.number().default(1).label('Trang'),
     per_page: Joi.number().default(10).label('Số bản ghi trên trang'),
@@ -26,7 +25,6 @@ export const getLinks = Joi.object({
     q: Joi.string().allow('').label('Từ khóa tìm kiếm'),
 })
 
-// ========== CREATE LINK ========== //
 export const createLink = Joi.object({
     url: Joi.string()
         .custom(
