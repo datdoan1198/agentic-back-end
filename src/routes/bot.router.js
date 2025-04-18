@@ -83,6 +83,15 @@ botRouter.post(
     asyncHandler(botUserController.create)
 )
 
+botRouter.put(
+    '/:botId',
+    asyncHandler(authUserMiddleware.checkValidToken),
+    asyncHandler(botUserMiddleware.checkBotExist),
+    asyncHandler(botUserMiddleware.parseFormData),
+    asyncHandler(validate(botUserRequest.updateBot)),
+    asyncHandler(botUserController.updateBot)
+)
+
 botRouter.delete(
     '/:botId',
     asyncHandler(authUserMiddleware.checkValidToken),

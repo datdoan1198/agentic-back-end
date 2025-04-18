@@ -15,6 +15,13 @@ export async function create(req, res) {
     })
 }
 
+export async function updateBot(req, res) {
+    await db.transaction(async function (session) {
+        const result = await botService.updateBot(req.currentUser, req.bot, req.body, session)
+        res.status(201).jsonify(result, 'Update bot success')
+    })
+}
+
 export async function getDetailBot(req, res) {
     res.status(201).jsonify(await botService.getDetailBot(req.params.botId))
 }

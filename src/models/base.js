@@ -65,3 +65,8 @@ export const SCAN_TYPE = {
     ALL: 'ALL',
     ONE: 'ONE',
 }
+
+export const CHATBOX_POSITION = {
+    LEFT: 'left',
+    RIGHT: 'right',
+}

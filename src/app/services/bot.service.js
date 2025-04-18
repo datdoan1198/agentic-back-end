@@ -195,6 +195,23 @@ export async function createBot(currentUser, infoUrl, session) {
     return bot
 }
 
+export async function updateBot(currentUser, bot, data, session) {
+    const botUpdate = await Bot.findOneAndUpdate(
+        {
+            _id: bot._id,
+            user_id: currentUser._id,
+        },
+        {
+            ...data,
+        },
+        { new: true, session }
+    )
+    if (!botUpdate) {
+        throw new Error('Bot is not exist')
+    }
+    return botUpdate
+}
+
 // ========= GET INFO PAGE =========== //
 export async function handleGetInfoPage(url) {
     const browser = await puppeteer.launch({ headless: true })

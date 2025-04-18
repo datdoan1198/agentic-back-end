@@ -1,4 +1,4 @@
-import createModel, {ObjectId, STATUS_BOT} from './base'
+import createModel, { CHATBOX_POSITION, ObjectId, STATUS_BOT } from './base'
 
 const Bot = createModel(
     'Bot',
@@ -14,15 +14,72 @@ const Bot = createModel(
         },
         logo: {
             type: String,
-            default: ''
+            default: '',
         },
         favicon: {
             type: String,
-            default: ''
+            default: '',
+        },
+        color: {
+            type: String,
+            default: '',
         },
         description: {
             type: String,
-            default: ''
+            default: '',
+        },
+        welcome_message: {
+            type: String,
+            default: 'Xin chào, tôi là trợ lý ảo của bạn 👋',
+        },
+        quick_prompts: {
+            type: [String],
+            default: [],
+        },
+        auto_display_chatbox: {
+            type: Boolean,
+            default: false,
+        },
+        banner: {
+            title: {
+                type: String,
+                default: '',
+            },
+            link: {
+                type: String,
+                default: '',
+            },
+            image: {
+                type: String,
+                default: '',
+            },
+        },
+        chat_button_size: {
+            desktop: {
+                type: Number,
+                default: 60,
+            },
+            mobile: {
+                type: Number,
+                default: 40,
+            },
+        },
+        alignment: {
+            position: {
+                type: String,
+                enum: Object.values(CHATBOX_POSITION),
+                default: 'right',
+            },
+            offset: {
+                x: {
+                    type: Number,
+                    default: 0,
+                },
+                y: {
+                    type: Number,
+                    default: 0,
+                },
+            },
         },
         status: {
             type: String,
@@ -34,7 +91,8 @@ const Bot = createModel(
             type: ObjectId,
             required: true,
         },
-    },{
+    },
+    {
         virtuals: {
             bot: {
                 options: {
@@ -67,7 +125,7 @@ const Bot = createModel(
                     foreignField: 'bot_id',
                     justOne: true,
                 },
-            }
+            },
         },
     }
 )
