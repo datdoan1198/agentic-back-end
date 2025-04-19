@@ -8,7 +8,6 @@ import * as botUserRequest from '@/app/requests/user/bot.request'
 
 const botRouter = Router()
 
-// =========== GET [Bot - Links] =========== //
 botRouter.get(
     '/:botId/links',
     asyncHandler(authUserMiddleware.checkValidToken),
@@ -17,7 +16,6 @@ botRouter.get(
     asyncHandler(botUserController.getLinks)
 )
 
-// ========== POST [Bot - Links] =========== //
 botRouter.post(
     '/:botId/links',
     asyncHandler(authUserMiddleware.checkValidToken),
@@ -26,7 +24,6 @@ botRouter.post(
     asyncHandler(botUserController.createLink)
 )
 
-// ========== GET [Link - View Content] =========== //
 botRouter.get(
     '/:botId/links/:linkId/content',
     asyncHandler(authUserMiddleware.checkValidToken),
@@ -34,7 +31,6 @@ botRouter.get(
     asyncHandler(botUserController.viewLinkContent)
 )
 
-// ========== GET [Link - Re-Scan] =========== //
 botRouter.get(
     '/:botId/links/:linkId/re-scan',
     asyncHandler(authUserMiddleware.checkValidToken),
@@ -42,7 +38,6 @@ botRouter.get(
     asyncHandler(botUserController.rescanLink)
 )
 
-// =========== DELETE [Link] =========== //
 botRouter.delete(
     '/:botId/links/:linkId',
     asyncHandler(authUserMiddleware.checkValidToken),
@@ -88,7 +83,15 @@ botRouter.post(
     asyncHandler(botUserController.create)
 )
 
-// =========== GET [Bot - Delete] =========== //
+botRouter.put(
+    '/:botId',
+    asyncHandler(authUserMiddleware.checkValidToken),
+    asyncHandler(botUserMiddleware.checkBotExist),
+    asyncHandler(botUserMiddleware.parseFormData),
+    asyncHandler(validate(botUserRequest.updateBot)),
+    asyncHandler(botUserController.updateBot)
+)
+
 botRouter.delete(
     '/:botId',
     asyncHandler(authUserMiddleware.checkValidToken),

@@ -34,3 +34,17 @@ export async function checkBotExist(req, res, next) {
 
     abort(404, 'Bot không tồn tại.')
 }
+
+export async function parseFormData(req, res, next) {
+    if (req.method === 'PUT' && req.headers['content-type']?.includes('multipart/form-data')) {
+        const data = await req.body
+
+        if (data.quick_prompts) {
+            // data.quick_prompts = JSON.parse(data.quick_prompts)
+            console.log('quick_prompts', data.quick_prompts)
+        }
+        next()
+    } else {
+        next()
+    }
+}
