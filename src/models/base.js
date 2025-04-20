@@ -70,3 +70,19 @@ export const CHATBOX_POSITION = {
     LEFT: 'left',
     RIGHT: 'right',
 }
+
+export const PRIORITY_KNOWLEDGE = {
+    HIGH: 1,
+    MEDIUM: 2,
+    LOW: 3
+}
+
+export const TYPE_CONVERSATION = {
+    WEB: 'WEB',
+    FB: 'FB'
+}
+
+export const TYPE_MESSAGE = {
+    USER: 'USER',
+    BOT: 'BOT',
+}

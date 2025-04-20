@@ -1,8 +1,9 @@
 import * as botService from '@/app/services/bot.service'
 import * as fbService from '@/app/services/facebook.service'
-import { db } from '@/configs'
-import { FacebookService } from '@/models'
-import OpenAI from 'openai'
+import * as openAIService from '@/app/services/openAI.service'
+import * as conversationService from '@/app/services/conversation.service'
+import {db} from '@/configs'
+import {FacebookService, TYPE_CONVERSATION} from '@/models'
 
 export async function getListBotChats(req, res) {
     res.status(201).jsonify(await botService.filter(req.currentUser))
@@ -45,21 +46,20 @@ export async function createLink(req, res) {
     })
 }
 
-export async function viewLinkContent(req, res) {
-    const result = await botService.viewLinkContent(req.bot, req.params.linkId)
-    res.status(200).jsonify(result)
+export function viewLinkContent(req, res) {
+    res.status(200).jsonify(req.link)
 }
 
 export async function rescanLink(req, res) {
     await db.transaction(async function (session) {
-        const result = await botService.rescanLink(req.bot, req.params.linkId, session)
+        const result = await botService.rescanLink(req.bot, req.link, session)
         res.status(200).jsonify(result)
     })
 }
 
 export async function deleteLink(req, res) {
-    const result = await botService.deleteLink(req.currentUser, req.bot, req.params.linkId)
-    res.status(200).jsonify(result, 'Delete link success')
+    await botService.deleteLink(req.bot, req.link)
+    res.status(200).jsonify()
 }
 
 export async function getPageFb(req, res) {
@@ -105,14 +105,20 @@ export async function receiveMessageFb(req, res) {
             for (const event of item.messaging) {
                 if (event.message && event.sender) {
                     const senderId = event.sender.id
-                    // const userMessage = event.message.text
+                    const userMessage = event.message.text
+                    const messageSend = await openAIService.askOpenAI(userMessage, fbConfig.bot_id)
 
                     if (parseInt(senderId) !== fbConfig.page_id) {
-                        await fbService.sendMessage(
-                            fbConfig.page_access_token,
-                            senderId,
-                            'Xin chào! Cảm ơn bạn đã nhắn tin cho chúng tôi. 😊'
-                        )
+                        await fbService.sendMessage(fbConfig.page_access_token, senderId, messageSend)
+                        await db.transaction(async function (session) {
+                            await conversationService.createMessage(
+                                {userId: senderId, userMessage},
+                                messageSend,
+                                fbConfig,
+                                TYPE_CONVERSATION.FB,
+                                session
+                            )
+                        })
                     }
                 }
             }
@@ -120,26 +126,6 @@ export async function receiveMessageFb(req, res) {
         res.sendStatus(200)
     } catch (error) {
         console.error('Error receiveMessageFb:', error)
-        return res.sendStatus(500)
-    }
-}
-
-const openai = new OpenAI({
-    apiKey: process.env.OPENAI_API_KEY,
-})
-
-export async function demo(req, res) {
-    try {
-        const response = await openai.embeddings.create({
-            model: 'text-embedding-3-small',
-            input: 'Kiến thức cần mã hóa...',
-        })
-
-        const embedding = response.data[0].embedding
-
-        res.status(201).jsonify(embedding)
-    } catch (error) {
-        console.error('Error xxxx:', error)
         return res.sendStatus(500)
     }
 }
