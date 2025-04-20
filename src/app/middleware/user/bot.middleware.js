@@ -1,5 +1,5 @@
 import { abort } from '@/utils/helpers'
-import { Bot, STATUS_BOT } from '@/models'
+import {Bot, Conversation, STATUS_BOT, WebKnowledge} from '@/models'
 import { handleGetInfoPage } from '@/app/services/bot.service'
 import { isValidObjectId } from 'mongoose'
 
@@ -10,8 +10,12 @@ export async function checkUrlBotExist(req, res, next) {
     })
     if (!bot) {
         req.infoUrl = await handleGetInfoPage(req.body.url)
-        next()
-        return
+        if (req.infoUrl) {
+            next()
+            return
+        } else {
+            abort(404, 'Đường dẫn không phù hợp.')
+        }
     }
 
     abort(404, 'Bot đã tồn tại.')
@@ -35,6 +39,23 @@ export async function checkBotExist(req, res, next) {
     abort(404, 'Bot không tồn tại.')
 }
 
+export async function checkLinkExist(req, res, next) {
+    if (isValidObjectId(req.params.linkId)) {
+        const link = await WebKnowledge.findOne({
+            _id: req.params.linkId,
+            bot_id: req.bot._id,
+        }).select('url title description content')
+
+        if (link) {
+            req.link = link
+            next()
+            return
+        }
+    }
+
+    abort(404, 'Đường dẫn không tồn tại.')
+}
+
 export async function parseFormData(req, res, next) {
     if (req.method === 'PUT' && req.headers['content-type']?.includes('multipart/form-data')) {
         const data = await req.body
@@ -47,4 +68,21 @@ export async function parseFormData(req, res, next) {
     } else {
         next()
     }
+}
+
+export async function checkConversationExist(req, res, next) {
+    if (isValidObjectId(req.params.conversationId)) {
+        const conversation = await Conversation.findOne({
+            _id: req.params.conversationId,
+            bot_id: req.bot._id,
+        })
+
+        if (conversation) {
+            req.conversation = conversation
+            next()
+            return
+        }
+    }
+
+    abort(404, 'Cuộc hội thoại không tồn tại.')
 }

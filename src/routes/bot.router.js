@@ -5,75 +5,17 @@ import * as authUserMiddleware from '@/app/middleware/user/auth.middleware'
 import * as botUserMiddleware from '@/app/middleware/user/bot.middleware'
 import validate from '@/app/middleware/common/validate'
 import * as botUserRequest from '@/app/requests/user/bot.request'
+import conversationRouter from './bot/conversation.route'
+import facebookRouter from './bot/facebook.router'
+import linkRouter from './bot/link.router'
 
 const botRouter = Router()
 
 botRouter.get(
-    '/:botId/links',
+    '/',
     asyncHandler(authUserMiddleware.checkValidToken),
-    asyncHandler(botUserMiddleware.checkBotExist),
-    asyncHandler(validate(botUserRequest.getLinks)),
-    asyncHandler(botUserController.getLinks)
+    asyncHandler(botUserController.getListBotChats)
 )
-
-botRouter.post(
-    '/:botId/links',
-    asyncHandler(authUserMiddleware.checkValidToken),
-    asyncHandler(botUserMiddleware.checkBotExist),
-    asyncHandler(validate(botUserRequest.createLink)),
-    asyncHandler(botUserController.createLink)
-)
-
-botRouter.get(
-    '/:botId/links/:linkId/content',
-    asyncHandler(authUserMiddleware.checkValidToken),
-    asyncHandler(botUserMiddleware.checkBotExist),
-    asyncHandler(botUserController.viewLinkContent)
-)
-
-botRouter.get(
-    '/:botId/links/:linkId/re-scan',
-    asyncHandler(authUserMiddleware.checkValidToken),
-    asyncHandler(botUserMiddleware.checkBotExist),
-    asyncHandler(botUserController.rescanLink)
-)
-
-botRouter.delete(
-    '/:botId/links/:linkId',
-    asyncHandler(authUserMiddleware.checkValidToken),
-    asyncHandler(botUserMiddleware.checkBotExist),
-    asyncHandler(botUserController.deleteLink)
-)
-
-botRouter.get(
-    '/:botId',
-    asyncHandler(authUserMiddleware.checkValidToken),
-    asyncHandler(botUserMiddleware.checkBotExist),
-    asyncHandler(botUserController.getDetailBot)
-)
-
-botRouter.get(
-    '/:botId/list-page-fb',
-    asyncHandler(authUserMiddleware.checkValidToken),
-    asyncHandler(botUserMiddleware.checkBotExist),
-    asyncHandler(botUserController.getPageFb)
-)
-
-botRouter.post(
-    '/:botId/select-page-fb',
-    asyncHandler(authUserMiddleware.checkValidToken),
-    asyncHandler(botUserMiddleware.checkBotExist),
-    asyncHandler(validate(botUserRequest.selectPageFB)),
-    asyncHandler(botUserController.selectPageFB)
-)
-
-botRouter.get('/fb/webhook', botUserController.verifyPageFb)
-
-botRouter.post('/fb/webhook', asyncHandler(botUserController.receiveMessageFb))
-
-botRouter.get('/openId/demo-openId', botUserController.demo)
-
-botRouter.get('/', asyncHandler(authUserMiddleware.checkValidToken), asyncHandler(botUserController.getListBotChats))
 
 botRouter.post(
     '/',
@@ -81,6 +23,13 @@ botRouter.post(
     asyncHandler(validate(botUserRequest.createBot)),
     asyncHandler(botUserMiddleware.checkUrlBotExist),
     asyncHandler(botUserController.create)
+)
+
+botRouter.get(
+    '/:botId',
+    asyncHandler(authUserMiddleware.checkValidToken),
+    asyncHandler(botUserMiddleware.checkBotExist),
+    asyncHandler(botUserController.getDetailBot)
 )
 
 botRouter.put(
@@ -98,5 +47,9 @@ botRouter.delete(
     asyncHandler(botUserMiddleware.checkBotExist),
     asyncHandler(botUserController.deleteBot)
 )
+
+botRouter.use('/', linkRouter)
+botRouter.use('/', facebookRouter)
+botRouter.use('/', conversationRouter)
 
 export default botRouter

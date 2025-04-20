@@ -1,4 +1,4 @@
-import createModel, {ObjectId} from './base'
+import createModel, {ObjectId, PRIORITY_KNOWLEDGE} from './base'
 
 const KnowledgeVector = createModel(
     'KnowledgeVector',
@@ -22,8 +22,9 @@ const KnowledgeVector = createModel(
         },
         priority: {
             type: Number,
+            enum: Object.values(PRIORITY_KNOWLEDGE),
             required: true,
-            default: 1,
+            default: PRIORITY_KNOWLEDGE.MEDIUM,
         }
     },{
         virtuals: {

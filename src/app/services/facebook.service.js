@@ -98,3 +98,21 @@ export async function sendMessage (pageAccessToken, recipientId, message) {
         }
     )
 }
+
+export async function handleGetListMessageFanPageFB (pageId, pageAccessToken) {
+    const params = {
+        access_token: pageAccessToken,
+        fields: 'id,updated_time,participants,message_count',
+        limit: 50,
+    }
+    await axios.get(
+        `https://graph.facebook.com/v20.0/${pageId}/conversations`,
+        { params }
+    ).then((res) => {
+        console.log(res)
+    }).catch((error) => {
+        console.log(error.message)
+    })
+
+    return []
+}
