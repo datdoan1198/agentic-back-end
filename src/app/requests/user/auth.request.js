@@ -27,7 +27,7 @@ export const register = Joi.object({
 
 export const updateProfile = Joi.object({
     name: Joi.string().trim().max(MAX_STRING_SIZE).required().label('Họ và tên'),
-    email: Joi.string().allow('').email().required().label('Email'),
+    // email: Joi.string().allow('').email().required().label('Email'),
     gender: Joi.string().allow(null, '').valid(...Object.values(GENDER)).label('Giới tính'),
     dob: Joi.string()
         .trim()
@@ -65,5 +65,9 @@ export const updateProfile = Joi.object({
     )
         .allow('')
         .label('Ảnh đại diện'),
+})
+
+export const changePassword = Joi.object({
+    password: Joi.string().required().min(6).label('Mật khẩu'),
 })
 

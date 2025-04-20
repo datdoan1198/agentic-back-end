@@ -36,7 +36,6 @@ authRouter.get(
     asyncHandler(authUser.me)
 )
 
-
 authRouter.put(
     '/me',
     asyncHandler(authUserMiddleware.checkValidToken),
@@ -44,4 +43,10 @@ authRouter.put(
     asyncHandler(authUser.updateProfile)
 )
 
+authRouter.put(
+    '/change-password',
+    asyncHandler(authUserMiddleware.checkValidToken),
+    asyncHandler(validate(authUserRequest.changePassword)),
+    asyncHandler(authUser.changePassword)
+)
 export default authRouter

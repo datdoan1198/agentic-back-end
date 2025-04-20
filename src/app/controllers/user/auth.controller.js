@@ -39,6 +39,14 @@ export async function updateProfile(req, res) {
     })
 }
 
+export async function changePassword(req, res) {
+    await db.transaction(async function (session) {
+        req.currentUser.password = req.body.password
+        await req.currentUser.save({session})
+        res.status(201).jsonify('Đổi mật khẩu thành công.')
+    })
+}
+
 export async function callbackFB(req, res) {
     const { code, state } = req.query
 

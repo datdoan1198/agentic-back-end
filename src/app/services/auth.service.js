@@ -100,7 +100,7 @@ export async function profileUser(currentUser) {
 }
 
 export async function updateProfileUser(session, currentUser, requestBody) {
-    const {name, email, avatar} = requestBody
+    const {name, avatar} = requestBody
 
     const user = await User.findById(currentUser._id)
 
@@ -115,6 +115,6 @@ export async function updateProfileUser(session, currentUser, requestBody) {
     }
 
     user.name = name || user.name
-    user.name = email || user.email
+
     await user.save({session})
 }
