@@ -1,5 +1,5 @@
 import { abort } from '@/utils/helpers'
-import {Bot, Conversation, WebKnowledge} from '@/models'
+import { Bot, Conversation, WebKnowledge } from '@/models'
 import { handleGetInfoPage } from '@/app/services/bot.service'
 import { isValidObjectId } from 'mongoose'
 
@@ -63,9 +63,11 @@ export async function parseFormData(req, res, next) {
     if (req.method === 'PUT' && req.headers['content-type']?.includes('multipart/form-data')) {
         const data = await req.body
 
+        if (data.welcome_messages) {
+            data.welcome_messages = JSON.parse(data.welcome_messages)
+        }
         if (data.quick_prompts) {
-            // data.quick_prompts = JSON.parse(data.quick_prompts)
-            console.log('quick_prompts', data.quick_prompts)
+            data.quick_prompts = JSON.parse(data.quick_prompts)
         }
         next()
     } else {

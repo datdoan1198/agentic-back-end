@@ -1,8 +1,9 @@
-import {Bot, FacebookService, PRIORITY_KNOWLEDGE, SCAN_TYPE, STATUS_WEB_KNOWLEDGE, WebKnowledge} from '@/models'
+import { Bot, FacebookService, PRIORITY_KNOWLEDGE, SCAN_TYPE, STATUS_WEB_KNOWLEDGE, WebKnowledge } from '@/models'
 import puppeteer from 'puppeteer-extra'
 import StealthPlugin from 'puppeteer-extra-plugin-stealth'
 import _ from 'lodash'
 import * as knowledgeService from '@/app/services/knowledge.service'
+import { FileUpload } from '@/utils/classes'
 
 puppeteer.use(StealthPlugin())
 
@@ -12,7 +13,17 @@ export async function filter(currentUser) {
         deleted: false,
     }
 
-    const botChats = await Bot.find(filter).sort({ created_at: 'desc' }).lean()
+    const bots = await Bot.find(filter).sort({ created_at: 'desc' }).lean()
+    const botChats = bots.map((bot) => {
+        if (bot.logo) {
+            console.log('logo', bot.logo)
+            bot.logo = FileUpload.in(bot.logo)
+        }
+        if (bot.favicon) {
+            bot.favicon = FileUpload.in(bot.favicon)
+        }
+        return bot
+    })
 
     const total = await Bot.countDocuments(filter)
     return { total, botChats }
@@ -28,6 +39,12 @@ export async function getDetailBot(botId) {
             name: configFb.page_name,
         }
     }
+    if (bot.logo) {
+        bot.logo = FileUpload.in(bot.logo)
+    }
+    if (bot.favicon) {
+        bot.favicon = FileUpload.in(bot.favicon)
+    }
     return bot
 }
 
@@ -39,7 +56,7 @@ export async function handleUpdateStatus(bot, body) {
 
 export async function deleteBot(bot, session) {
     bot.deleted = true
-    await bot.save({session})
+    await bot.save({ session })
 }
 
 export async function getLinks(bot, query) {
@@ -120,16 +137,26 @@ export async function createLinkScanAll(currentBot, { url }, session) {
 
 export async function rescanLink(currentBot, link, session) {
     const infoUrl = await handleGetInfoPage(link.url)
-    const linkUpdate = await knowledgeService.updateKnowledgeWeb({
-        title: infoUrl.name,
-        description: infoUrl.description,
-        url_logo: infoUrl.logo,
-        content: infoUrl.content,
-        status: STATUS_WEB_KNOWLEDGE.TRAINED,
-    }, link, session)
+    const linkUpdate = await knowledgeService.updateKnowledgeWeb(
+        {
+            title: infoUrl.name,
+            description: infoUrl.description,
+            url_logo: infoUrl.logo,
+            content: infoUrl.content,
+            status: STATUS_WEB_KNOWLEDGE.TRAINED,
+        },
+        link,
+        session
+    )
 
     const textConvertVector = infoUrl.name + '.' + infoUrl.description
-    await knowledgeService.createVectorKnowledge(textConvertVector, currentBot._id, link._id, PRIORITY_KNOWLEDGE.MEDIUM, session)
+    await knowledgeService.createVectorKnowledge(
+        textConvertVector,
+        currentBot._id,
+        link._id,
+        PRIORITY_KNOWLEDGE.MEDIUM,
+        session
+    )
 
     const links = await handleGetAllUrlInPage(link.url)
     if (links && links.length > 0) {
@@ -175,7 +202,13 @@ export async function createBot(currentUser, infoUrl, session) {
                     STATUS_WEB_KNOWLEDGE.TRAINED
                 )
                 const textConvertVector = infoUrl.name + '.' + infoUrl.description
-                await knowledgeService.createVectorKnowledge(textConvertVector, bot._id, knowledgeWeb._id, PRIORITY_KNOWLEDGE.HIGH, session)
+                await knowledgeService.createVectorKnowledge(
+                    textConvertVector,
+                    bot._id,
+                    knowledgeWeb._id,
+                    PRIORITY_KNOWLEDGE.HIGH,
+                    session
+                )
             } else {
                 await knowledgeService.createKnowledgeWeb({ url: link }, bot, session)
             }
@@ -186,6 +219,20 @@ export async function createBot(currentUser, infoUrl, session) {
 }
 
 export async function updateBot(currentUser, bot, data, session) {
+    if (data.logo && data.logo instanceof FileUpload) {
+        if (bot.logo) {
+            FileUpload.remove(bot.logo)
+        }
+        data.logo = await data.logo.save('bot/logos')
+    }
+
+    if (data.favicon && data.favicon instanceof FileUpload) {
+        if (bot.favicon) {
+            FileUpload.remove(bot.favicon)
+        }
+        data.favicon = await data.favicon.save('bot/favicons')
+    }
+
     const botUpdate = await Bot.findOneAndUpdate(
         {
             _id: bot._id,
@@ -196,10 +243,8 @@ export async function updateBot(currentUser, bot, data, session) {
             ...data,
         },
         { new: true, session }
-    )
-    if (!botUpdate) {
-        throw new Error('Bot is not exist')
-    }
+    ).lean()
+
     return botUpdate
 }
 
@@ -212,8 +257,8 @@ export async function handleGetInfoPage(url) {
                 '--disable-setuid-sandbox',
                 '--disable-dev-shm-usage',
                 '--disable-blink-features=AutomationControlled',
-                '--start-maximized'
-            ]
+                '--start-maximized',
+            ],
         })
         const page = await browser.newPage()
         await page.setUserAgent(
@@ -235,7 +280,8 @@ export async function handleGetInfoPage(url) {
             const imgLogo =
                 // eslint-disable-next-line no-undef
                 Array.from(document.querySelectorAll('img')).find(
-                    (img) => img.src && (img.alt?.toLowerCase().includes('logo') || img.src.toLowerCase().includes('logo'))
+                    (img) =>
+                        img.src && (img.alt?.toLowerCase().includes('logo') || img.src.toLowerCase().includes('logo'))
                 )?.src || null
 
             // eslint-disable-next-line no-undef

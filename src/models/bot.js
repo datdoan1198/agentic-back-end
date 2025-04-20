@@ -28,17 +28,17 @@ const Bot = createModel(
             type: String,
             default: '',
         },
-        welcome_message: {
-            type: String,
-            default: 'Xin chào, tôi là trợ lý ảo của bạn 👋',
+        welcome_messages: {
+            type: [String],
+            default: ['Xin chào, tôi là trợ lý ảo của bạn 👋', 'Tôi rất sẵn lòng hỗ trợ 😊'],
         },
         quick_prompts: {
             type: [String],
             default: [],
         },
         auto_display_chatbox: {
-            type: Boolean,
-            default: false,
+            type: String,
+            default: '',
         },
         banner: {
             title: {
