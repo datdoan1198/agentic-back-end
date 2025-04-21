@@ -41,6 +41,14 @@ botRouter.put(
     asyncHandler(botUserController.updateBot)
 )
 
+botRouter.put(
+    '/:botId/change-status',
+    asyncHandler(authUserMiddleware.checkValidToken),
+    asyncHandler(botUserMiddleware.checkBotExist),
+    asyncHandler(validate(botUserRequest.changeStatusBot)),
+    asyncHandler(botUserController.updateStatus)
+)
+
 botRouter.delete(
     '/:botId',
     asyncHandler(authUserMiddleware.checkValidToken),

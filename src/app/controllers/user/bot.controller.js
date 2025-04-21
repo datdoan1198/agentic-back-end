@@ -3,7 +3,7 @@ import * as fbService from '@/app/services/facebook.service'
 import * as openAIService from '@/app/services/openAI.service'
 import * as conversationService from '@/app/services/conversation.service'
 import {db} from '@/configs'
-import {FacebookService, TYPE_CONVERSATION} from '@/models'
+import {FacebookService, STATUS_BOT, TYPE_CONVERSATION} from '@/models'
 
 export async function getListBotChats(req, res) {
     res.status(201).jsonify(await botService.filter(req.currentUser))
@@ -27,13 +27,21 @@ export async function getDetailBot(req, res) {
     res.status(201).jsonify(await botService.getDetailBot(req.params.botId))
 }
 
+export async function updateStatus(req, res) {
+    await db.transaction(async function () {
+        const result = await botService.handleUpdateStatus(req.bot, req.body)
+        res.status(201).jsonify(result)
+    })
+}
+
 export async function deleteBot(req, res) {
     await db.transaction(async function (session) {
-        const result = await botService.deleteBot(req.currentUser, req.bot, session)
+        const result = await botService.deleteBot(req.bot, session)
         res.status(200).jsonify(result, 'Delete bot success')
     })
 }
 
+// Link
 export async function getLinks(req, res) {
     const result = await botService.getLinks(req.bot, req.query)
     res.status(200).jsonify(result)
@@ -62,6 +70,7 @@ export async function deleteLink(req, res) {
     res.status(200).jsonify()
 }
 
+// FB
 export async function getPageFb(req, res) {
     res.status(201).jsonify(await fbService.getListPageFB(req.bot))
 }
@@ -70,6 +79,13 @@ export async function selectPageFB(req, res) {
     await db.transaction(async function (session) {
         const result = await fbService.selectPage(req.bot, req.body.page_id, session)
         res.status(201).jsonify(result)
+    })
+}
+
+export async function unlinkPageFB(req, res) {
+    await db.transaction(async function (session) {
+        await FacebookService.deleteMany({bot_id: req.bot._id,}, {session})
+        res.status(201).jsonify()
     })
 }
 
@@ -96,9 +112,14 @@ export async function receiveMessageFb(req, res) {
         }
 
         for (const item of entry) {
-            const fbConfig = await FacebookService.findOne({ page_id: item.id })
+            const fbConfig = await FacebookService.findOne({ page_id: item.id }).populate('bot')
 
-            if (!fbConfig || !fbConfig.page_access_token) {
+            if (
+                !fbConfig ||
+                !fbConfig.page_access_token ||
+                !fbConfig.bot ||
+                fbConfig.bot.status === STATUS_BOT.DE_ACTIVE
+            ) {
                 continue
             }
 

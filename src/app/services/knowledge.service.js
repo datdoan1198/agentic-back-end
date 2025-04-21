@@ -1,10 +1,12 @@
 import {KnowledgeVector, PRIORITY_KNOWLEDGE, SCAN_TYPE, STATUS_WEB_KNOWLEDGE, WebKnowledge} from '@/models'
 import * as openAIService from '@/app/services/openAI.service'
 
-export async function createKnowledgeWeb(knowledgeData, bot, session, scan_type = SCAN_TYPE.ONE,) {
+export async function createKnowledgeWeb(
+    knowledgeData, bot, session, status = STATUS_WEB_KNOWLEDGE.UNTRAINED, scan_type = SCAN_TYPE.ONE
+) {
     const knowledge = new WebKnowledge({
         ...knowledgeData,
-        status: STATUS_WEB_KNOWLEDGE.TRAINED,
+        status,
         scan_type,
         bot_id: bot._id,
     })
@@ -52,11 +54,13 @@ export async function createVectorKnowledge(text, bot_id, source_id, priority = 
     const vector = await openAIService.convertVector(text)
 
     if (vector && vector.length > 0) {
-        const knowledgeVector = new KnowledgeVector({
-            text, vector, source_id, bot_id, priority
-        })
-
-        await knowledgeVector.save({ session })
+        const knowledgeVector = await KnowledgeVector.findOneAndUpdate(
+            { source_id },
+            {
+                text, vector, source_id, bot_id, priority
+            },
+            { upsert: true, new: true, session }
+        )
 
         return knowledgeVector
     }

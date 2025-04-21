@@ -56,7 +56,11 @@ async function handleCheckAccessToken (access_token, bot) {
     })
 
     if (_.isEmpty(checkAccessToken)) {
-        await Bot.deleteOne({_id: bot._id})
+        await Bot.findOneAndUpdate(
+            { _id: bot._id },
+            { deleted: true },
+            {upsert: true}
+        )
     }
 
     return !_.isEmpty(checkAccessToken)
@@ -66,15 +70,34 @@ export async function selectPage(bot, pageFbId, session) {
     const listPageFB = await pageFB.get(bot._id)
     if (listPageFB && listPageFB.length > 0) {
         const pageSelect = listPageFB.find((page) => page.id === pageFbId)
-        await FacebookService.findOneAndUpdate(
-            {bot_id: bot._id},
-            {
-                page_access_token: pageSelect.access_token,
-                page_name: pageSelect.name,
-                page_id: pageSelect.id,
-            },
-            {upsert: true, session}
-        )
+        const checkPageId = await FacebookService.findOne({page_id: pageSelect.id})
+
+        if (checkPageId) {
+            await FacebookService.deleteMany({
+                bot_id: bot._id,
+                page_id: { $ne: pageSelect.id }
+            }, {session})
+            await FacebookService.findOneAndUpdate(
+                { page_id: pageSelect.id },
+                {
+                    page_access_token: pageSelect.access_token,
+                    page_name: pageSelect.name,
+                    bot_id: bot._id
+                },
+                {upsert: true, session}
+            )
+        } else {
+            await FacebookService.findOneAndUpdate(
+                { bot_id: bot._id },
+                {
+                    page_access_token: pageSelect.access_token,
+                    page_name: pageSelect.name,
+                    page_id: pageSelect.id,
+                },
+                {upsert: true, session}
+            )
+        }
+
     }
 
     await pageFB.clear()

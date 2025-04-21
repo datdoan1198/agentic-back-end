@@ -91,6 +91,11 @@ const Bot = createModel(
             type: ObjectId,
             required: true,
         },
+        deleted: {
+            type: Boolean,
+            required: true,
+            default: false,
+        },
     },
     {
         virtuals: {

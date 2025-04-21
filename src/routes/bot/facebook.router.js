@@ -23,6 +23,13 @@ facebookRouter.post(
     asyncHandler(botUserController.selectPageFB)
 )
 
+facebookRouter.post(
+    '/:botId/unlink-page',
+    asyncHandler(authUserMiddleware.checkValidToken),
+    asyncHandler(botUserMiddleware.checkBotExist),
+    asyncHandler(botUserController.unlinkPageFB)
+)
+
 facebookRouter.get('/fb/webhook', botUserController.verifyPageFb)
 
 facebookRouter.post('/fb/webhook', asyncHandler(botUserController.receiveMessageFb))

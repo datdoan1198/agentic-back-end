@@ -1,4 +1,4 @@
-import {Bot, FacebookService, PRIORITY_KNOWLEDGE, SCAN_TYPE, WebKnowledge} from '@/models'
+import {Bot, FacebookService, PRIORITY_KNOWLEDGE, SCAN_TYPE, STATUS_WEB_KNOWLEDGE, WebKnowledge} from '@/models'
 import puppeteer from 'puppeteer-extra'
 import StealthPlugin from 'puppeteer-extra-plugin-stealth'
 import _ from 'lodash'
@@ -9,6 +9,7 @@ puppeteer.use(StealthPlugin())
 export async function filter(currentUser) {
     const filter = {
         user_id: currentUser._id,
+        deleted: false,
     }
 
     const botChats = await Bot.find(filter).sort({ created_at: 'desc' }).lean()
@@ -18,7 +19,7 @@ export async function filter(currentUser) {
 }
 
 export async function getDetailBot(botId) {
-    const bot = await Bot.findOne({ _id: botId })
+    const bot = await Bot.findOne({ _id: botId, deleted: false })
     const configFb = await FacebookService.findOne({ bot_id: botId })
     bot.is_connect_fb = !!configFb
     if (!_.isEmpty(configFb) && !_.isEmpty(configFb.page_access_token)) {
@@ -30,16 +31,15 @@ export async function getDetailBot(botId) {
     return bot
 }
 
-export async function deleteBot(currentUser, bot, session) {
-    const botDelete = await Bot.findOneAndDelete({
-        _id: bot._id,
-        user_id: currentUser._id,
-    }).session(session)
-    if (!botDelete) {
-        throw new Error('Bot is not exist')
-    }
-    await WebKnowledge.deleteMany({ bot_id: bot._id }).session(session)
-    return { bot_id: bot._id }
+export async function handleUpdateStatus(bot, body) {
+    bot.status = body.status
+    await bot.save()
+    return bot
+}
+
+export async function deleteBot(bot, session) {
+    bot.deleted = true
+    await bot.save({session})
 }
 
 export async function getLinks(bot, query) {
@@ -125,6 +125,7 @@ export async function rescanLink(currentBot, link, session) {
         description: infoUrl.description,
         url_logo: infoUrl.logo,
         content: infoUrl.content,
+        status: STATUS_WEB_KNOWLEDGE.TRAINED,
     }, link, session)
 
     const textConvertVector = infoUrl.name + '.' + infoUrl.description
@@ -170,7 +171,8 @@ export async function createBot(currentUser, infoUrl, session) {
                         content: infoUrl.content,
                     },
                     bot,
-                    session
+                    session,
+                    STATUS_WEB_KNOWLEDGE.TRAINED
                 )
                 const textConvertVector = infoUrl.name + '.' + infoUrl.description
                 await knowledgeService.createVectorKnowledge(textConvertVector, bot._id, knowledgeWeb._id, PRIORITY_KNOWLEDGE.HIGH, session)
@@ -188,6 +190,7 @@ export async function updateBot(currentUser, bot, data, session) {
         {
             _id: bot._id,
             user_id: currentUser._id,
+            deleted: false,
         },
         {
             ...data,
