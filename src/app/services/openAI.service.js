@@ -47,7 +47,7 @@ export async function askOpenAI(question, bot_id) {
 
 export async function handleGetPrompt (question, bot_id) {
     const queryEmbedding = await convertVector(question)
-    const bot = await Bot.findOne({_id: bot_id})
+    const bot = await Bot.findOne({_id: bot_id, deleted: false,})
     let context = ''
     let businessInfo = ''
 

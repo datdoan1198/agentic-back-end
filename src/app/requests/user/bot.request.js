@@ -1,6 +1,6 @@
 import Joi from 'joi'
 import { AsyncValidate, FileUpload } from '@/utils/classes'
-import { WebKnowledge } from '@/models'
+import {STATUS_BOT, WebKnowledge} from '@/models'
 
 export const createBot = Joi.object({
     url: Joi.string()
@@ -95,4 +95,8 @@ export const createLink = Joi.object({
         .required()
         .label('Đường dẫn'),
     scan_type: Joi.string().required().label('Kiểu quét'),
+})
+
+export const changeStatusBot = Joi.object({
+    status: Joi.string().required().valid(...Object.values(STATUS_BOT)).label('Trạng thái'),
 })
