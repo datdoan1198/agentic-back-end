@@ -3,9 +3,8 @@ import path from 'path'
 import serveFavicon from 'serve-favicon'
 import helmet from 'helmet'
 import multer from 'multer'
-import {APP_DEBUG, NODE_ENV, PUBLIC_DIR, VIEW_DIR} from './configs'
-
-import {jsonify, sendMail} from './handlers/response.handler'
+import { APP_DEBUG, APP_URL_CLIENT, NODE_ENV, PUBLIC_DIR, VIEW_DIR } from './configs'
+import { jsonify, sendMail } from './handlers/response.handler'
 import corsHandler from './handlers/cors.handler'
 import httpRequestHandler from './handlers/http-request.handler'
 import limiter from './handlers/rate-limit.handler'
@@ -13,13 +12,27 @@ import formDataHandler from './handlers/form-data.handler'
 import initLocalsHandler from './handlers/init-locals.handler'
 import notFoundHandler from './handlers/not-found.handler'
 import errorHandler from './handlers/error.handler'
+import socketIo from 'socket.io'
 
 import route from './routes'
 
 function createApp() {
     // Init app
     const app = express()
+    setupApp(app)
 
+    const server = require('http').createServer(app)
+    const io = setupSocketIo(server)
+
+    route(app, io)
+
+    app.use(notFoundHandler)
+    app.use(errorHandler)
+
+    return server
+}
+
+function setupApp(app) {
     app.response.jsonify = jsonify
     app.response.sendMail = sendMail
 
@@ -37,20 +50,21 @@ function createApp() {
     app.use(limiter)
     app.use(helmet())
     app.use(express.json())
-    app.use(express.urlencoded({extended: true}))
-    app.use(multer({storage: multer.memoryStorage()}).any())
+    app.use(express.urlencoded({ extended: true }))
+    app.use(multer({ storage: multer.memoryStorage() }).any())
     app.use(formDataHandler)
     app.use(initLocalsHandler)
+}
 
-    route(app)
-
-    // Not found handler
-    app.use(notFoundHandler)
-
-    // Error handler
-    app.use(errorHandler)
-
-    return app
+function setupSocketIo(server) {
+    return socketIo(server, {
+        cors: {
+            origin: APP_URL_CLIENT,
+            methods: ['GET', 'POST'],
+            allowedHeaders: ['my-custom-header'],
+            credentials: true,
+        },
+    })
 }
 
 export default createApp

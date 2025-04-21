@@ -1,53 +1,49 @@
-import {Conversation, Message, TYPE_MESSAGE} from '@/models'
+import { Conversation, Message, TYPE_CONVERSATION, TYPE_MESSAGE } from '@/models'
 
-export async function getListConversation ({q, page, per_page, field, sort_order}, bot) {
-    q = q ? {$regex: q, $options: 'i'} : null
+export async function getListConversation({ q, page, per_page, field, sort_order }, bot) {
+    q = q ? { $regex: q, $options: 'i' } : null
 
     const filter = {
-        ...(q && {$or: [{name: q}]}),
-        bot_id: bot._id
+        ...(q && { $or: [{ name: q }] }),
+        bot_id: bot._id,
     }
 
-    const conversations = (
-        await Conversation.find(filter)
-            .skip((page - 1) * per_page)
-            .limit(per_page)
-            .sort({[field || 'order']: sort_order || 'asc'})
-            .lean()
-    )
+    const conversations = await Conversation.find(filter)
+        .skip((page - 1) * per_page)
+        .limit(per_page)
+        .sort({ [field || 'order']: sort_order || 'asc' })
+        .lean()
 
     for (const conversation of conversations) {
         conversation.lastMessage = await Message.findOne({
             conversation_id: conversation._id,
-            type: TYPE_MESSAGE.USER
-        }).sort({ 'created_at': -1 })
+            type: TYPE_MESSAGE.USER,
+        }).sort({ created_at: -1 })
     }
 
     const total = await Conversation.countDocuments(filter)
-    return {total, page, per_page, conversations}
+    return { total, page, per_page, conversations }
 }
 
-export async function getListMessage ({q, page, per_page, field, sort_order}, conversation) {
-    q = q ? {$regex: q, $options: 'i'} : null
+export async function getListMessage({ q, page, per_page, field, sort_order }, conversation) {
+    q = q ? { $regex: q, $options: 'i' } : null
 
     const filter = {
-        ...(q && {$or: [{name: q}]}),
-        conversation_id: conversation._id
+        ...(q && { $or: [{ name: q }] }),
+        conversation_id: conversation._id,
     }
 
-    const messages = (
-        await Message.find(filter)
-            .skip((page - 1) * per_page)
-            .limit(per_page)
-            .sort({[field || 'created_at']: sort_order || 'desc'})
-            .lean()
-    )
+    const messages = await Message.find(filter)
+        .skip((page - 1) * per_page)
+        .limit(per_page)
+        .sort({ [field || 'created_at']: sort_order || 'desc' })
+        .lean()
 
     const total = await Message.countDocuments(filter)
-    return {total, page, per_page, messages}
+    return { total, page, per_page, messages }
 }
 
-export async function createMessage({userId, userMessage}, messageSend, fbConfigBot, type, session) {
+export async function createMessage({ userId, userMessage }, messageSend, fbConfigBot, type, session) {
     const conversion = await Conversation.findOneAndUpdate(
         {
             platform_user_id: userId,
@@ -58,12 +54,12 @@ export async function createMessage({userId, userMessage}, messageSend, fbConfig
                 platform_user_id: userId,
                 bot_id: fbConfigBot.bot_id,
                 type,
-            }
+            },
         },
         {
             new: true,
             upsert: true,
-            session
+            session,
         }
     )
 
@@ -71,17 +67,54 @@ export async function createMessage({userId, userMessage}, messageSend, fbConfig
         sender_id: userId,
         content: userMessage,
         conversation_id: conversion._id,
-        type: TYPE_MESSAGE.USER
+        type: TYPE_MESSAGE.USER,
     })
 
-    await saveMessageReceive.save({session})
+    await saveMessageReceive.save({ session })
 
-    const saveMessageSend  = new Message({
+    const saveMessageSend = new Message({
         sender_id: fbConfigBot.page_id,
         content: messageSend,
         conversation_id: conversion._id,
     })
 
-    await saveMessageSend.save({session})
+    await saveMessageSend.save({ session })
     return true
+}
+
+export async function createWebConversation(botId, session) {
+    const conversion = new Conversation({
+        bot_id: botId,
+        type: TYPE_CONVERSATION.FB,
+    })
+
+    await conversion.save({ session })
+    return conversion
+}
+
+export async function saveMessage(userId, conversationId, userContent, botContent, botId, session) {
+    const userMessage = new Message({
+        sender_id: userId,
+        content: userContent,
+        conversation_id: conversationId,
+        type: TYPE_MESSAGE.USER,
+    })
+
+    await userMessage.save({ session })
+
+    const botMessage = new Message({
+        sender_id: botId,
+        content: botContent,
+        conversation_id: conversationId,
+        type: TYPE_MESSAGE.BOT,
+    })
+
+    await botMessage.save({ session })
+    return botMessage
+}
+
+export async function updateLastMessage(conversationId, content, session) {
+    const conversation = await Conversation.findById(conversationId).session(session)
+    conversation.last_message = content // Sẽ gọi đến setter
+    await conversation.save({ session })
 }

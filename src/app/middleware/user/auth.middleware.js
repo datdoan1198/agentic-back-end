@@ -1,9 +1,10 @@
-import {abort, getToken, verifyToken} from '@/utils/helpers'
+import { abort, getToken, verifyToken } from '@/utils/helpers'
 import _ from 'lodash'
-import {tokenBlockList} from '@/app/services/auth.service'
-import {TOKEN_TYPE} from '@/configs'
-import {User} from '@/models'
-import {JsonWebTokenError, TokenExpiredError} from 'jsonwebtoken'
+import { tokenBlockList } from '@/app/services/auth.service'
+import { TOKEN_TYPE } from '@/configs'
+import { User } from '@/models'
+import { JsonWebTokenError, TokenExpiredError } from 'jsonwebtoken'
+import { userSockets } from '@/routes/socket.router'
 
 export async function checkValidToken(req, res, next) {
     try {
@@ -12,8 +13,8 @@ export async function checkValidToken(req, res, next) {
         if (token) {
             const allowedToken = _.isUndefined(await tokenBlockList.get(token))
             if (allowedToken) {
-                const {userId} = verifyToken(token, TOKEN_TYPE.USER_AUTHORIZATION)
-                const user = await User.findOne({_id: userId, deleted: false})
+                const { userId } = verifyToken(token, TOKEN_TYPE.USER_AUTHORIZATION)
+                const user = await User.findOne({ _id: userId, deleted: false })
                 if (user) {
                     req.currentUser = user
                     next()
@@ -38,4 +39,30 @@ export function checkMustChangePassword(req, res, next) {
     }
     req.currentUser.must_change_password = false
     next()
+}
+
+export async function socketAuthentication(socket, token) {
+    try {
+        if (token) {
+            // Check if the token is not in the blocklist
+            const allowedToken = _.isUndefined(await tokenBlockList.get(token))
+            if (allowedToken) {
+                const { userId } = verifyToken(token, TOKEN_TYPE.USER_AUTHORIZATION)
+                const user = await User.findOne({ _id: userId, deleted: false })
+                if (user) {
+                    console.log('User connected:', user._id.toString())
+                    socket.currentUser = user
+                    userSockets[socket.id] = user._id.toString()
+                    return
+                }
+            }
+        }
+    } catch (error) {
+        if (!(error instanceof JsonWebTokenError)) {
+            throw error
+        }
+        if (error instanceof TokenExpiredError) {
+            abort(401, 'Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập để tiếp tục!')
+        }
+    }
 }
