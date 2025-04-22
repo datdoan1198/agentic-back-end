@@ -25,25 +25,37 @@ export const updateBot = Joi.object({
         .required()
         .label('Đường dẫn'),
     name: Joi.string().label('Tên bot'),
-    logo: Joi.object({
-        mimetype: Joi.valid('image/jpeg', 'image/png', 'image/svg+xml', 'image/webp').required().label('Image format'),
-    })
-        .unknown(true)
-        .instance(FileUpload)
+    logo: Joi.alternatives()
+        .try(
+            Joi.string(),
+            Joi.object({
+                mimetype: Joi.valid('image/jpeg', 'image/png', 'image/svg+xml', 'image/webp')
+                    .required()
+                    .label('Image format'),
+            })
+                .unknown(true)
+                .instance(FileUpload)
+        )
         .allow('', {}, 'null')
         .label('Logo'),
-    favicon: Joi.object({
-        mimetype: Joi.valid('image/jpeg', 'image/png', 'image/svg+xml', 'image/webp').required().label('Image format'),
-    })
-        .unknown(true)
-        .instance(FileUpload)
+    favicon: Joi.alternatives()
+        .try(
+            Joi.string(),
+            Joi.object({
+                mimetype: Joi.valid('image/jpeg', 'image/png', 'image/svg+xml', 'image/webp')
+                    .required()
+                    .label('Image format'),
+            })
+                .unknown(true)
+                .instance(FileUpload)
+        )
         .allow('', {}, 'null')
         .label('Favicon'),
     color: Joi.string().label('Màu sắc'),
     description: Joi.string().label('Mô tả'),
-    welcome_message: Joi.string().label('Tin nhắn chào mừng'),
+    welcome_messages: Joi.array().items(Joi.string()).label('Tin nhắn chào mừng'),
     quick_prompts: Joi.array().items(Joi.string()).label('Câu hỏi nhanh'),
-    auto_display_chatbox: Joi.boolean().label('Tự động hiển thị hộp chat'),
+    auto_display_chatbox: Joi.string().label('Tự động hiển thị hộp chat'),
     banner: Joi.object({
         title: Joi.string().label('Tiêu đề'),
         link: Joi.string().label('Liên kết'),
