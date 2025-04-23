@@ -11,4 +11,6 @@ export {default as FacebookService} from './facebook_service'
 export {default as KnowledgeVector} from './knowledge-vector'
 export {default as Conversation} from './conversation'
 export {default as Message} from './messages'
+export {default as BotConfig} from './bot-config'
+
 

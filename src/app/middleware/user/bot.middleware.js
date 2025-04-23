@@ -30,7 +30,7 @@ export async function checkBotExist(req, res, next) {
             _id: req.params.botId,
             user_id: req.currentUser._id,
             deleted: false,
-        }).populate('fb')
+        }).populate('fb').populate('config_bot')
 
         if (bot) {
             req.bot = bot

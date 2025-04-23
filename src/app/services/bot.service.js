@@ -1,4 +1,12 @@
-import { Bot, FacebookService, PRIORITY_KNOWLEDGE, SCAN_TYPE, STATUS_WEB_KNOWLEDGE, WebKnowledge } from '@/models'
+import {
+    Bot,
+    BotConfig,
+    FacebookService,
+    PRIORITY_KNOWLEDGE,
+    SCAN_TYPE,
+    STATUS_WEB_KNOWLEDGE,
+    WebKnowledge
+} from '@/models'
 import puppeteer from 'puppeteer-extra'
 import StealthPlugin from 'puppeteer-extra-plugin-stealth'
 import _ from 'lodash'
@@ -30,7 +38,7 @@ export async function filter(currentUser) {
 }
 
 export async function getDetailBot(botId) {
-    const bot = await Bot.findOne({ _id: botId, deleted: false })
+    const bot = await Bot.findOne({ _id: botId, deleted: false }).populate('config_bot')
     const configFb = await FacebookService.findOne({ bot_id: botId })
     bot.is_connect_fb = !!configFb
     if (!_.isEmpty(configFb) && !_.isEmpty(configFb.page_access_token)) {
@@ -39,8 +47,8 @@ export async function getDetailBot(botId) {
             name: configFb.page_name,
         }
     }
-    if (bot.logo) {
-        bot.logo = FileUpload.in(bot.logo)
+    if (bot?.config_bot?.logo_message) {
+        bot.config_bot.logo_message = FileUpload.in(bot.config_bot.logo_message)
     }
     if (bot.favicon) {
         bot.favicon = FileUpload.in(bot.favicon)
@@ -219,33 +227,52 @@ export async function createBot(currentUser, infoUrl, session) {
 }
 
 export async function updateBot(currentUser, bot, data, session) {
-    if (data.logo && data.logo instanceof FileUpload) {
-        if (bot.logo) {
-            FileUpload.remove(bot.logo)
+    const {
+        name, favicon,  description,
+        color, logo_message, welcome_messages, quick_prompts, auto_display_chatbox
+    } = data
+
+    let pathLogoMessage = bot?.config_bot?.logo_message
+
+    if (logo_message && logo_message instanceof FileUpload) {
+        if (bot?.config_bot?.logo_message) {
+            FileUpload.remove(bot.config_bot.logo_message)
         }
-        data.logo = await data.logo.save('bot/logos')
+        pathLogoMessage = await logo_message.save('bot/logos')
     }
 
-    if (data.favicon && data.favicon instanceof FileUpload) {
+    if (favicon && favicon instanceof FileUpload) {
         if (bot.favicon) {
             FileUpload.remove(bot.favicon)
         }
         data.favicon = await data.favicon.save('bot/favicons')
     }
 
-    const botUpdate = await Bot.findOneAndUpdate(
-        {
-            _id: bot._id,
-            user_id: currentUser._id,
-            deleted: false,
-        },
-        {
-            ...data,
-        },
-        { new: true, session }
-    ).lean()
+    bot.name = name
+    bot.favicon = data.favicon
+    bot.description = description
+    await bot.save({ session })
 
-    return botUpdate
+    await BotConfig.findOneAndUpdate(
+        {
+            bot_id: bot._id,
+        },
+        {
+            logo_message: pathLogoMessage,
+            color: color,
+            welcome_messages,
+            quick_prompts,
+            auto_display_chatbox,
+        },
+        {
+
+            new: true,
+            upsert: true,
+            session,
+        }
+    )
+
+    return bot
 }
 
 export async function handleGetInfoPage(url) {
