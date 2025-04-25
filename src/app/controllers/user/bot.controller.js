@@ -133,10 +133,16 @@ export async function receiveMessageFb(req, res) {
                         await fbService.sendMessage(fbConfig.page_access_token, senderId, messageSend)
                         await db.transaction(async function (session) {
                             await conversationService.createMessage(
-                                {userId: senderId, userMessage},
-                                messageSend,
-                                fbConfig,
+                                {
+                                    receiver_id: senderId,
+                                    user_message: userMessage
+                                },
+                                {
+                                    sender_id: fbConfig.page_id,
+                                    bot_message: messageSend
+                                },
                                 TYPE_CONVERSATION.FB,
+                                fbConfig.bot_id,
                                 session
                             )
                         })

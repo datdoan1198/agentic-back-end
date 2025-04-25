@@ -66,6 +66,7 @@ export async function handleGetPrompt (question, bot_id) {
             .sort((a, b) => b.similarity - a.similarity)
             .slice(0, 3)
 
+        console.log(ranked)
         const topTexts = ranked.map(item => item.knowledgeVector.text).filter(Boolean)
         context += topTexts.join('\n---\n')
     }

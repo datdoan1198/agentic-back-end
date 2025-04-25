@@ -28,9 +28,9 @@ export async function checkBotExist(req, res, next) {
     if (isValidObjectId(req.params.botId)) {
         const bot = await Bot.findOne({
             _id: req.params.botId,
-            user_id: req.currentUser._id,
+            ...(req.currentUser && {user_id: req.currentUser._id}),
             deleted: false,
-        }).populate('fb')
+        }).populate('fb').populate('config_bot')
 
         if (bot) {
             req.bot = bot

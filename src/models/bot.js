@@ -131,6 +131,14 @@ const Bot = createModel(
                     justOne: true,
                 },
             },
+            config_bot: {
+                options: {
+                    ref: 'BotConfig',
+                    localField: '_id',
+                    foreignField: 'bot_id',
+                    justOne: true,
+                },
+            },
         },
     }
 )

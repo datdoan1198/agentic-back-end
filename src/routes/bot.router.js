@@ -8,6 +8,7 @@ import * as botUserRequest from '@/app/requests/user/bot.request'
 import conversationRouter from './bot/conversation.route'
 import facebookRouter from './bot/facebook.router'
 import linkRouter from './bot/link.router'
+import chatRouter from './bot/chat.router'
 
 const botRouter = Router()
 
@@ -59,5 +60,6 @@ botRouter.delete(
 botRouter.use('/', linkRouter)
 botRouter.use('/', facebookRouter)
 botRouter.use('/', conversationRouter)
+botRouter.use('/', chatRouter)
 
 export default botRouter
