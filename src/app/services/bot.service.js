@@ -1,18 +1,12 @@
-import {
-    Bot,
-    BotConfig,
-    FacebookService,
-    SCAN_TYPE,
-    STATUS_TRAIN,
-    WebKnowledge,
-    ColorMain
-} from '@/models'
+import {Bot, BotConfig, ColorMain, FacebookService, SCAN_TYPE, STATUS_TRAIN, WebKnowledge} from '@/models'
 import puppeteer from 'puppeteer-extra'
 import StealthPlugin from 'puppeteer-extra-plugin-stealth'
 import _ from 'lodash'
 import * as vectorKnowledgeService from '@/app/services/vector-knowledge.service'
 import * as webKnowledgeService from '@/app/services/knowledge.service'
-import { FileUpload } from '@/utils/classes'
+import {FileUpload} from '@/utils/classes'
+import axios from 'axios'
+import * as cheerio from 'cheerio'
 
 puppeteer.use(StealthPlugin())
 
@@ -252,93 +246,68 @@ async function handleScanAllLinks (infoUrl, bot, session) {
 
 export async function handleGetInfoPage(url) {
     try {
-        const browser = await puppeteer.launch({
-            headless: true,
-            args: [
-                '--no-sandbox',
-                '--disable-setuid-sandbox',
-                '--disable-dev-shm-usage',
-                '--disable-blink-features=AutomationControlled',
-                '--start-maximized',
-            ],
+        const response = await axios.get(url)
+        const $ = cheerio.load(response.data)
+
+        const metaTags = []
+        $('meta').each((_, elem) => {
+            metaTags.push({
+                name: $(elem).attr('name') || null,
+                property: $(elem).attr('property') || null,
+                content: $(elem).attr('content') || null,
+            })
         })
-        const page = await browser.newPage()
-        await page.setUserAgent(
-            'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/58.0.3029.110 Safari/537.3'
-        )
-        await page.goto(url, { waitUntil: 'networkidle2', timeout: 30000 })
-        const data = await page.evaluate((pageUrl) => {
-            // eslint-disable-next-line no-undef
-            const metaTags = Array.from(document.querySelectorAll('meta')).map((meta) => ({
-                name: meta.getAttribute('name') || null,
-                property: meta.getAttribute('property') || null,
-                content: meta.getAttribute('content') || null,
-            }))
 
-            // eslint-disable-next-line no-undef
-            const favicon = document.querySelector('link[rel~="icon"]')?.href || null
+        const rawFavicon = $('link[rel~="icon"]').attr('href') || null
+        const favicon = rawFavicon ? new URL(rawFavicon, url).href : null
 
-            // eslint-disable-next-line no-undef
-            const imgLogo =
-                // eslint-disable-next-line no-undef
-                Array.from(document.querySelectorAll('img')).find(
-                    (img) =>
-                        img.src && (img.alt?.toLowerCase().includes('logo') || img.src.toLowerCase().includes('logo'))
-                )?.src || null
+        const imgLogo = $('img').filter((_, img) => {
+            const alt = $(img).attr('alt')?.toLowerCase() || ''
+            const src = $(img).attr('src')?.toLowerCase() || ''
+            return alt.includes('logo') || src.includes('logo')
+        }).first().attr('src') || null
 
-            // eslint-disable-next-line no-undef
-            const headHTML = document.head.innerHTML
+        const ogUrl = metaTags.find((tag) => tag.property === 'og:url')
+        const ogTitle = metaTags.find((tag) => tag.property === 'og:title')
+        const description = metaTags.find((tag) => tag.name === 'description')
 
-            const ogUrl = metaTags.find((tag) => tag.property === 'og:url')
-            const ogTitle = metaTags.find((tag) => tag.property === 'og:title')
-            const description = metaTags.find((tag) => tag.name === 'description')
-
-            return {
-                url: ogUrl?.content || pageUrl,
-                // eslint-disable-next-line no-undef
-                name: ogTitle?.content || document.title || 'Unknown Title',
-                description: description?.content || '',
-                logo: imgLogo,
-                favicon,
-                content: `<head>${headHTML}</head>`,
-            }
-        }, url)
-
-        await browser.close()
-        return data
+        return {
+            url: ogUrl?.content || url,
+            name: ogTitle?.content || $('title').text() || 'Unknown Title',
+            description: description?.content || '',
+            logo: imgLogo,
+            favicon,
+            content: `<head>${$('head').html()}</head>`,
+        }
     } catch (error) {
+        console.error(error.message)
         return null
     }
 }
 
 export async function handleGetAllUrlInPage(url) {
-    const browser = await puppeteer.launch({ headless: true })
-    const page = await browser.newPage()
-    await page.setUserAgent(
-        'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/58.0.3029.110 Safari/537.3'
-    )
-    await page.goto(url, { waitUntil: 'networkidle2', timeout: 30000 })
-    await page.waitForSelector('a', { timeout: 3000 }).catch(() => {})
+    try {
+        const response = await axios.get(url)
+        const $ = cheerio.load(response.data)
 
-    const links = await page.evaluate(() => {
-        // eslint-disable-next-line no-undef
-        const anchors = Array.from(document.querySelectorAll('a'))
-        const urls = anchors
-            .map((a) => a.getAttribute('href'))
+        const origin = new URL(url).origin
+
+        const links = $('a')
+            .map((_, a) => $(a).attr('href'))
+            .get()
             .filter((href) => href && !href.startsWith('tel:') && !href.startsWith('mailto:'))
             .map((href) => {
                 try {
-                    // eslint-disable-next-line no-undef
-                    return new URL(href, window.location.origin).href
+                    return new URL(href, origin).href
                 } catch (e) {
                     return null
                 }
             })
-            // eslint-disable-next-line no-undef
-            .filter((href) => href && href.startsWith(window.location.origin))
-        return Array.from(new Set(urls))
-    })
+            .filter((href) => href && href.startsWith(origin))
 
-    await browser.close()
-    return links
+        return Array.from(new Set(links))
+    } catch (error) {
+        console.error('Error fetching page:', error.message)
+        return []
+    }
 }
