@@ -20,7 +20,11 @@ export const createBot = Joi.object({
                     })
                     if (!bot) {
                         req.infoUrl = await handleGetInfoPage(req.body.url)
-                        return value
+                        if (req.infoUrl) {
+                            return value
+                        } else {
+                            return helpers.error('any.invalid')
+                        }
                     }
                     return helpers.error('any.exists')
                 })
