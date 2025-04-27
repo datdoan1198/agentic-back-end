@@ -57,7 +57,7 @@ export async function callbackFB(req, res) {
     try {
         const CLIENT_ID = process.env.VITE_FB_APP_ID
         const CLIENT_SECRET = process.env.VITE_FB_SECRET_KEY
-        const REDIRECT_URI = `${process.env.APP_URL_API_NGROK}/auth/callback`
+        const REDIRECT_URI = `${process.env.APP_URL_API}/auth/callback`
 
         const tokenResponse = await axios.get(
             'https://graph.facebook.com/v20.0/oauth/access_token',
