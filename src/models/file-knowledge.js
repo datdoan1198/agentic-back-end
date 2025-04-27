@@ -1,36 +1,26 @@
-import createModel, { ObjectId, SCAN_TYPE, STATUS_TRAIN } from './base'
+import createModel, {ObjectId, STATUS_TRAIN} from './base'
 
-const WebKnowledge = createModel(
-    'WebKnowledge',
-    'web_knowledge',
+const FileKnowledge = createModel(
+    'FileKnowledge',
+    'file_knowledge',
     {
-        url: {
+        title: {
             type: String,
             required: true,
         },
-        title: {
-            type: String,
-            default: '',
-        },
-        description: {
-            type: String,
-            default: '',
-        },
         content: {
             type: String,
-            default: '',
+            required: true,
+        },
+        path: {
+            type: String,
+            required: true,
         },
         status: {
             type: String,
             enum: Object.values(STATUS_TRAIN),
             required: true,
             default: STATUS_TRAIN.UNTRAINED,
-        },
-        scan_type: {
-            type: String,
-            enum: Object.values(SCAN_TYPE),
-            required: true,
-            default: SCAN_TYPE.ALL,
         },
         bot_id: {
             type: ObjectId,
@@ -51,4 +41,4 @@ const WebKnowledge = createModel(
     }
 )
 
-export default WebKnowledge
+export default FileKnowledge

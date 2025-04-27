@@ -1,8 +1,9 @@
 import {CronJob} from 'cron'
 import {db, logger} from '@/configs'
 import {normalizeError} from '@/utils/helpers'
-import {PRIORITY_KNOWLEDGE, STATUS_WEB_KNOWLEDGE, WebKnowledge} from '@/models'
-import * as knowledgeService from '@/app/services/knowledge.service'
+import {STATUS_TRAIN, WebKnowledge} from '@/models'
+import * as webKnowledgeService from '@/app/services/knowledge.service'
+import * as vectorKnowledgeService from '@/app/services/vector-knowledge.service'
 import { handleGetInfoPage } from '@/app/services/bot.service'
 import _ from 'lodash'
 
@@ -17,24 +18,24 @@ const scanKnowledgeWeb = CronJob.from({
 
             try {
                 const knowledgeWeb = await WebKnowledge.findOne({
-                    status: STATUS_WEB_KNOWLEDGE.UNTRAINED
+                    status: STATUS_TRAIN.UNTRAINED
                 })
 
                 if (!_.isEmpty(knowledgeWeb)) {
                     const infoUrl = await handleGetInfoPage(knowledgeWeb.url)
                     if (!_.isEmpty(infoUrl)) {
                         await db.transaction(async function (session) {
-                            await knowledgeService.updateKnowledgeWeb({
+                            await webKnowledgeService.updateKnowledgeWeb({
                                 title: infoUrl.name,
                                 description: infoUrl.description,
                                 url_logo: infoUrl.logo,
                                 content: infoUrl.content,
-                                status: STATUS_WEB_KNOWLEDGE.TRAINED,
+                                status: STATUS_TRAIN.TRAINED,
                             }, knowledgeWeb, session)
 
-                            const textConvertVector = infoUrl.name + '.' + infoUrl.description
-                            await knowledgeService.createVectorKnowledge(
-                                textConvertVector, knowledgeWeb.bot_id, knowledgeWeb._id, PRIORITY_KNOWLEDGE.MEDIUM, session
+                            const textConvertVector = infoUrl.name + '.' + infoUrl.description + '.' + knowledgeWeb.url
+                            await vectorKnowledgeService.createVectorKnowledge(
+                                textConvertVector, knowledgeWeb.bot_id, knowledgeWeb._id, session
                             )
                         })
                     }

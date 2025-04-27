@@ -7,10 +7,9 @@ export {default as Admin} from './admin'
 export {default as User} from './user'
 export {default as Bot} from './bot'
 export {default as WebKnowledge} from './web-knowledge'
+export {default as FileKnowledge} from './file-knowledge'
 export {default as FacebookService} from './facebook_service'
 export {default as KnowledgeVector} from './knowledge-vector'
 export {default as Conversation} from './conversation'
 export {default as Message} from './messages'
 export {default as BotConfig} from './bot-config'
-
-

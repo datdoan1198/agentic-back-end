@@ -1,19 +1,23 @@
-import {KnowledgeVector, PRIORITY_KNOWLEDGE, SCAN_TYPE, STATUS_WEB_KNOWLEDGE, WebKnowledge} from '@/models'
-import * as openAIService from '@/app/services/openAI.service'
+import {SCAN_TYPE, STATUS_TRAIN, WebKnowledge} from '@/models'
 
 export async function createKnowledgeWeb(
-    knowledgeData, bot, session, status = STATUS_WEB_KNOWLEDGE.UNTRAINED, scan_type = SCAN_TYPE.ONE
+    knowledgeData, bot, session, status = STATUS_TRAIN.UNTRAINED, scan_type = SCAN_TYPE.ONE
 ) {
-    const knowledge = new WebKnowledge({
-        ...knowledgeData,
-        status,
-        scan_type,
-        bot_id: bot._id,
-    })
+    const isWebKnowledgeExit = await WebKnowledge.findOne({url: knowledgeData.url})
+    if (!isWebKnowledgeExit) {
+        const knowledge = new WebKnowledge({
+            ...knowledgeData,
+            status,
+            scan_type,
+            bot_id: bot._id,
+        })
 
-    await knowledge.save({ session })
+        await knowledge.save({ session })
 
-    return knowledge
+        return knowledge
+    }
+
+    return isWebKnowledgeExit
 }
 
 export async function updateKnowledgeWeb(knowledgeData, link, session) {
@@ -37,7 +41,7 @@ export async function createLinkNotExist(url, bot_id, session) {
         {
             $setOnInsert: {
                 url,
-                status: STATUS_WEB_KNOWLEDGE.UNTRAINED,
+                status: STATUS_TRAIN.UNTRAINED,
                 scan_type: SCAN_TYPE.ONE,
                 bot_id,
             }
@@ -48,20 +52,4 @@ export async function createLinkNotExist(url, bot_id, session) {
             session: session
         }
     )
-}
-
-export async function createVectorKnowledge(text, bot_id, source_id, priority = PRIORITY_KNOWLEDGE.MEDIUM, session) {
-    const vector = await openAIService.convertVector(text)
-
-    if (vector && vector.length > 0) {
-        const knowledgeVector = await KnowledgeVector.findOneAndUpdate(
-            { source_id },
-            {
-                text, vector, source_id, bot_id, priority
-            },
-            { upsert: true, new: true, session }
-        )
-
-        return knowledgeVector
-    }
 }

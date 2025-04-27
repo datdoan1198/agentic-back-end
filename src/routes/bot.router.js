@@ -1,5 +1,6 @@
 import { Router } from 'express'
 import * as botUserController from '@/app/controllers/user/bot.controller'
+import * as fileController from '@/app/controllers/user/bot/file.controller'
 import { asyncHandler } from '@/utils/helpers'
 import * as authUserMiddleware from '@/app/middleware/user/auth.middleware'
 import * as botUserMiddleware from '@/app/middleware/user/bot.middleware'
@@ -9,6 +10,7 @@ import conversationRouter from './bot/conversation.route'
 import facebookRouter from './bot/facebook.router'
 import linkRouter from './bot/link.router'
 import chatRouter from './bot/chat.router'
+import fileRouter from './bot/file.router'
 
 const botRouter = Router()
 
@@ -22,8 +24,14 @@ botRouter.post(
     '/',
     asyncHandler(authUserMiddleware.checkValidToken),
     asyncHandler(validate(botUserRequest.createBot)),
-    asyncHandler(botUserMiddleware.checkUrlBotExist),
     asyncHandler(botUserController.create)
+)
+
+botRouter.post(
+    '/create-with-file',
+    asyncHandler(authUserMiddleware.checkValidToken),
+    asyncHandler(validate(botUserRequest.createBotWithFile)),
+    asyncHandler(fileController.createBotWithFile)
 )
 
 botRouter.get(
@@ -61,5 +69,6 @@ botRouter.use('/', linkRouter)
 botRouter.use('/', facebookRouter)
 botRouter.use('/', conversationRouter)
 botRouter.use('/', chatRouter)
+botRouter.use('/', fileRouter)
 
 export default botRouter

@@ -14,7 +14,10 @@ export async function checkConversationWithChat(req, res, next) {
 
 export async function checkConversationExit(req, res, next) {
     if (isValidObjectId(req.params.conversationId)) {
-        const conversation = await Conversation.findOne({_id: req.params.conversationId})
+        const conversation = await Conversation.findOne({
+            _id: req.params.conversationId,
+            bot_id: req.bot._id
+        })
 
         if (conversation) {
             req.conversation = conversation
