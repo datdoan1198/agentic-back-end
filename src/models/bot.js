@@ -1,4 +1,4 @@
-import createModel, { CHATBOX_POSITION, ObjectId, STATUS_BOT } from './base'
+import createModel, { ObjectId, STATUS_BOT } from './base'
 
 const Bot = createModel(
     'Bot',
@@ -6,7 +6,7 @@ const Bot = createModel(
     {
         url: {
             type: String,
-            required: true,
+            default: '',
         },
         name: {
             type: String,
@@ -20,66 +20,9 @@ const Bot = createModel(
             type: String,
             default: '',
         },
-        color: {
-            type: String,
-            default: '',
-        },
         description: {
             type: String,
             default: '',
-        },
-        welcome_messages: {
-            type: [String],
-            default: ['Xin chào, tôi là trợ lý ảo của bạn 👋', 'Tôi rất sẵn lòng hỗ trợ 😊'],
-        },
-        quick_prompts: {
-            type: [String],
-            default: [],
-        },
-        auto_display_chatbox: {
-            type: String,
-            default: '',
-        },
-        banner: {
-            title: {
-                type: String,
-                default: '',
-            },
-            link: {
-                type: String,
-                default: '',
-            },
-            image: {
-                type: String,
-                default: '',
-            },
-        },
-        chat_button_size: {
-            desktop: {
-                type: Number,
-                default: 60,
-            },
-            mobile: {
-                type: Number,
-                default: 40,
-            },
-        },
-        alignment: {
-            position: {
-                type: String,
-                enum: Object.values(CHATBOX_POSITION),
-                default: 'right',
-            },
-            offset: {
-                x: {
-                    type: Number,
-                    default: 0,
-                },
-                y: {
-                    type: Number,
-                    default: 0,
-                },
-            },
         },
         status: {
             type: String,

@@ -7,6 +7,14 @@ export function getPromptAskOpenAI(business, context, userQuestion) {
         
         Câu hỏi: "${userQuestion}"
         
-        Hãy trả lời ngắn gọn và chính xác dựa trên thông tin trên.
+        Cho tôi sản phẩm cụ thể đc không
+
+        Yêu cầu:
+        - Văn phong thân thiện, tự nhiên.
+        - Trả lời dưới **dạng HTML**.
+        - Nếu khách hỏi về danh sách sản phẩm, hãy trả lời bằng thẻ <ol> và mỗi sản phẩm là một <li>, bao gồm:
+            + Tên sản phẩm.
+            + Đường link sản phẩm (gói trong thẻ <a target="_blank">) và cho nó nổi bật lên.
+            + Giá bán (ghi rõ số tiền).
     `
 }

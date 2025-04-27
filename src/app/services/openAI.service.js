@@ -64,9 +64,8 @@ export async function handleGetPrompt (question, bot_id) {
                 similarity: cosineSimilarity(queryEmbedding, knowledgeVector.vector)
             }))
             .sort((a, b) => b.similarity - a.similarity)
-            .slice(0, 3)
+            .slice(0, 10)
 
-        console.log(ranked)
         const topTexts = ranked.map(item => item.knowledgeVector.text).filter(Boolean)
         context += topTexts.join('\n---\n')
     }
@@ -74,7 +73,7 @@ export async function handleGetPrompt (question, bot_id) {
     return getPromptAskOpenAI(businessInfo, context, question)
 }
 
-function cosineSimilarity(vecA, vecB) {
+export function cosineSimilarity(vecA, vecB) {
     const dot = vecA.reduce((sum, a, i) => sum + a * vecB[i], 0)
     const magA = Math.sqrt(vecA.reduce((sum, a) => sum + a * a, 0))
     const magB = Math.sqrt(vecB.reduce((sum, b) => sum + b * b, 0))

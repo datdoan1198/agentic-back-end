@@ -2,15 +2,16 @@ import {
     Bot,
     BotConfig,
     FacebookService,
-    PRIORITY_KNOWLEDGE,
     SCAN_TYPE,
-    STATUS_WEB_KNOWLEDGE,
-    WebKnowledge
+    STATUS_TRAIN,
+    WebKnowledge,
+    ColorMain
 } from '@/models'
 import puppeteer from 'puppeteer-extra'
 import StealthPlugin from 'puppeteer-extra-plugin-stealth'
 import _ from 'lodash'
-import * as knowledgeService from '@/app/services/knowledge.service'
+import * as vectorKnowledgeService from '@/app/services/vector-knowledge.service'
+import * as webKnowledgeService from '@/app/services/knowledge.service'
 import { FileUpload } from '@/utils/classes'
 
 puppeteer.use(StealthPlugin())
@@ -24,7 +25,6 @@ export async function filter(currentUser) {
     const bots = await Bot.find(filter).sort({ created_at: 'desc' }).lean()
     const botChats = bots.map((bot) => {
         if (bot.logo) {
-            console.log('logo', bot.logo)
             bot.logo = FileUpload.in(bot.logo)
         }
         if (bot.favicon) {
@@ -56,173 +56,21 @@ export async function getDetailBot(botId) {
     return bot
 }
 
-export async function handleUpdateStatus(bot, body) {
-    bot.status = body.status
-    await bot.save()
-    return bot
-}
-
-export async function deleteBot(bot, session) {
-    bot.deleted = true
-    await bot.save({ session })
-}
-
-export async function getLinks(bot, query) {
-    const { page, per_page, status } = query
-    const keySearch = query.q || ''
-
-    const filter = {
-        bot_id: bot._id,
-        ...(status && { status }),
-        ...(keySearch && { url: { $regex: keySearch, $options: 'i' } }),
-    }
-
-    const links = await WebKnowledge.find(filter)
-        .skip((page - 1) * per_page)
-        .limit(per_page)
-        .lean()
-        .session(query.session)
-        .select('url title description status scan_type updated_at bot_id')
-
-    const total = await WebKnowledge.countDocuments(filter)
-    return { total, per_page, page, links, bot_id: bot._id }
-}
-
-export async function createLink(currentBot, { url, scan_type }, session) {
-    switch (scan_type) {
-        case SCAN_TYPE.ONE:
-            await createLinkScanOne(currentBot, { url }, session)
-            break
-        case SCAN_TYPE.ALL:
-            await createLinkScanAll(currentBot, { url }, session)
-            break
-        default:
-            throw new Error('Scan type is not valid')
-    }
-}
-
-export async function createLinkScanOne(currentBot, { url }, session) {
-    const infoUrl = await handleGetInfoPage(url)
-    const convertLink = url.endsWith('/') ? url.slice(0, -1) : url
-    const convertUrl = infoUrl.url.endsWith('/') ? infoUrl.url.slice(0, -1) : infoUrl.url
-
-    if (convertUrl === convertLink) {
-        await knowledgeService.createKnowledgeWeb(
-            {
-                url: infoUrl.url,
-                title: infoUrl.name,
-                description: infoUrl.description,
-                url_logo: infoUrl.logo,
-                content: infoUrl.content,
-            },
-            currentBot,
-            session
-        )
-    } else {
-        await knowledgeService.createKnowledgeWeb({ url }, currentBot, session)
-    }
-}
-
-export async function createLinkScanAll(currentBot, { url }, session) {
-    const currentLinks = await WebKnowledge.find({
-        bot_id: currentBot._id,
-        url: { $regex: new RegExp(url, 'i') },
-    })
-        .lean()
-        .session(session)
-        .select('url')
-
-    const links = await handleGetAllUrlInPage(url)
-    if (links && links.length > 0) {
-        await createLinkScanOne(currentBot, { url }, session)
-        for (const link of links) {
-            if (!currentLinks.some((currentLink) => currentLink.url === link) && link !== url) {
-                await knowledgeService.createKnowledgeWeb({ url: link }, currentBot, session)
-            }
-        }
-    }
-}
-
-export async function rescanLink(currentBot, link, session) {
-    const infoUrl = await handleGetInfoPage(link.url)
-    const linkUpdate = await knowledgeService.updateKnowledgeWeb(
-        {
-            title: infoUrl.name,
-            description: infoUrl.description,
-            url_logo: infoUrl.logo,
-            content: infoUrl.content,
-            status: STATUS_WEB_KNOWLEDGE.TRAINED,
-        },
-        link,
-        session
-    )
-
-    const textConvertVector = infoUrl.name + '.' + infoUrl.description
-    await knowledgeService.createVectorKnowledge(
-        textConvertVector,
-        currentBot._id,
-        link._id,
-        PRIORITY_KNOWLEDGE.MEDIUM,
-        session
-    )
-
-    const links = await handleGetAllUrlInPage(link.url)
-    if (links && links.length > 0) {
-        for (const link of links) {
-            await knowledgeService.createLinkNotExist(link, currentBot._id, session)
-        }
-    }
-
-    return linkUpdate
-}
-
-export async function deleteLink(bot, link) {
-    await WebKnowledge.deleteOne({
-        _id: link._id,
-        bot_id: bot._id,
-    })
-}
-
 export async function createBot(currentUser, infoUrl, session) {
     const bot = new Bot({
         ...infoUrl,
         user_id: currentUser._id,
     })
     await bot.save({ session })
-    const links = await handleGetAllUrlInPage(infoUrl.url)
 
-    if (links && links.length > 0) {
-        for (const link of links) {
-            const convertLink = link.endsWith('/') ? link.slice(0, -1) : link
-            const convertUrl = infoUrl.url.endsWith('/') ? infoUrl.url.slice(0, -1) : infoUrl.url
+    const config = new BotConfig({
+        logo_message: infoUrl.favicon,
+        color: ColorMain,
+        bot_id: bot._id
+    })
+    await config.save({ session })
 
-            if (convertUrl === convertLink) {
-                const knowledgeWeb = await knowledgeService.createKnowledgeWeb(
-                    {
-                        url: infoUrl.url,
-                        title: infoUrl.name,
-                        description: infoUrl.description,
-                        url_logo: infoUrl.logo,
-                        content: infoUrl.content,
-                    },
-                    bot,
-                    session,
-                    STATUS_WEB_KNOWLEDGE.TRAINED
-                )
-                const textConvertVector = infoUrl.name + '.' + infoUrl.description
-                await knowledgeService.createVectorKnowledge(
-                    textConvertVector,
-                    bot._id,
-                    knowledgeWeb._id,
-                    PRIORITY_KNOWLEDGE.HIGH,
-                    session
-                )
-            } else {
-                await knowledgeService.createKnowledgeWeb({ url: link }, bot, session)
-            }
-        }
-    }
-
+    infoUrl && infoUrl.url && await handleScanAllLinks(infoUrl, bot, session)
     return bot
 }
 
@@ -273,6 +121,133 @@ export async function updateBot(currentUser, bot, data, session) {
     )
 
     return bot
+}
+
+export async function handleUpdateStatus(bot, body) {
+    bot.status = body.status
+    await bot.save()
+    return bot
+}
+
+export async function deleteBot(bot, session) {
+    bot.deleted = true
+    await bot.save({ session })
+}
+
+// Links
+export async function getLinks(bot, query) {
+    const { page, per_page, status } = query
+    const keySearch = query.q || ''
+
+    const filter = {
+        bot_id: bot._id,
+        ...(status && { status }),
+        ...(keySearch && { url: { $regex: keySearch, $options: 'i' } }),
+    }
+
+    const links = await WebKnowledge.find(filter)
+        .skip((page - 1) * per_page)
+        .limit(per_page)
+        .lean()
+        .session(query.session)
+        .select('url title description status scan_type updated_at bot_id')
+
+    const total = await WebKnowledge.countDocuments(filter)
+    return { total, per_page, page, links, bot_id: bot._id }
+}
+
+export async function createLink(currentBot, { scan_type }, infoUrl, session) {
+    switch (scan_type) {
+        case SCAN_TYPE.ONE:
+            await handleCreateWebKnowledgeAndScanOneLink(currentBot, infoUrl, session)
+            break
+        case SCAN_TYPE.ALL:
+            await handleScanAllLinks(infoUrl, currentBot, session)
+            break
+        default:
+            throw new Error('Scan type is not valid')
+    }
+}
+
+export async function rescanLink(currentBot, link, session) {
+    const infoUrl = await handleGetInfoPage(link.url)
+    const linkUpdate = await webKnowledgeService.updateKnowledgeWeb(
+        {
+            title: infoUrl.name,
+            description: infoUrl.description,
+            url_logo: infoUrl.logo,
+            content: infoUrl.content,
+            status: STATUS_TRAIN.TRAINED,
+        },
+        link,
+        session
+    )
+
+    const textConvertVector = infoUrl.name + '.' + infoUrl.description + '.' + link.url
+    await vectorKnowledgeService.createVectorKnowledge(
+        textConvertVector,
+        currentBot._id,
+        link._id,
+        session
+    )
+
+    const links = await handleGetAllUrlInPage(link.url)
+    if (links && links.length > 0) {
+        for (const link of links) {
+            await webKnowledgeService.createLinkNotExist(link, currentBot._id, session)
+        }
+    }
+
+    return linkUpdate
+}
+
+export async function deleteLink(bot, link, session) {
+    await WebKnowledge.deleteOne({
+        _id: link._id,
+        bot_id: bot._id,
+    }, {session})
+    await vectorKnowledgeService.deleteVectorKnowledgeWithSourceId(link._id, session)
+}
+
+async function handleCreateWebKnowledgeAndScanOneLink (bot, infoUrl, session) {
+    const knowledgeWeb = await webKnowledgeService.createKnowledgeWeb(
+        {
+            url: infoUrl.url,
+            title: infoUrl.name,
+            description: infoUrl.description,
+            url_logo: infoUrl.logo,
+            content: infoUrl.content,
+        },
+        bot,
+        session,
+        STATUS_TRAIN.TRAINED
+    )
+
+    const textConvertVector = infoUrl.name + '.' + infoUrl.description + '.' + infoUrl.url
+    await vectorKnowledgeService.createVectorKnowledge(
+        textConvertVector,
+        bot._id,
+        knowledgeWeb._id,
+        session
+    )
+}
+
+async function handleScanAllLinks (infoUrl, bot, session) {
+    const links = await handleGetAllUrlInPage(infoUrl.url)
+
+    if (links && links.length > 0) {
+        for (const link of links) {
+            const cleanedParam = link.split('?')[0]
+            const convertLink = cleanedParam.endsWith('/') ? cleanedParam.slice(0, -1) : cleanedParam
+            const convertUrl = infoUrl.url.endsWith('/') ? infoUrl.url.slice(0, -1) : infoUrl.url
+
+            if (convertUrl === convertLink) {
+                await handleCreateWebKnowledgeAndScanOneLink(bot, infoUrl, session)
+            } else {
+                await webKnowledgeService.createKnowledgeWeb({ url: link }, bot, session)
+            }
+        }
+    }
 }
 
 export async function handleGetInfoPage(url) {

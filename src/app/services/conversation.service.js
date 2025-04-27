@@ -108,7 +108,12 @@ async function handleCreateMessageBot ({sender_id, bot_messages}, conversation_i
         for (const message of bot_messages) {
             const saveMessageSend  = new Message({
                 sender_id,
-                content: message,
+                content: message
+                    .trim()
+                    .replace(/^```html\s*/i, '')
+                    .replace(/^```/i, '')
+                    .replace(/```$/i, '')
+                    .trim(),
                 conversation_id,
             })
 

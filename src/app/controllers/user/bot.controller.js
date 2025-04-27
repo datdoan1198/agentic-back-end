@@ -49,7 +49,7 @@ export async function getLinks(req, res) {
 
 export async function createLink(req, res) {
     await db.transaction(async function (session) {
-        await botService.createLink(req.bot, req.body, session)
+        await botService.createLink(req.bot, req.body, req.infoUrl,session)
         res.status(201).jsonify('Create link success')
     })
 }
@@ -66,8 +66,11 @@ export async function rescanLink(req, res) {
 }
 
 export async function deleteLink(req, res) {
-    await botService.deleteLink(req.bot, req.link)
-    res.status(200).jsonify()
+
+    await db.transaction(async function (session) {
+        await botService.deleteLink(req.bot, req.link, session)
+        res.status(200).jsonify()
+    })
 }
 
 // FB

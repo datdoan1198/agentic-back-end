@@ -56,7 +56,7 @@ export const GENDER = {
     MALE: 'MALE',
 }
 
-export const STATUS_WEB_KNOWLEDGE = {
+export const STATUS_TRAIN = {
     TRAINED: 'TRAINED',
     UNTRAINED: 'UNTRAINED',
 }
@@ -64,17 +64,6 @@ export const STATUS_WEB_KNOWLEDGE = {
 export const SCAN_TYPE = {
     ALL: 'ALL',
     ONE: 'ONE',
-}
-
-export const CHATBOX_POSITION = {
-    LEFT: 'left',
-    RIGHT: 'right',
-}
-
-export const PRIORITY_KNOWLEDGE = {
-    HIGH: 1,
-    MEDIUM: 2,
-    LOW: 3
 }
 
 export const TYPE_CONVERSATION = {
@@ -86,3 +75,5 @@ export const TYPE_MESSAGE = {
     USER: 'USER',
     BOT: 'BOT',
 }
+
+export const ColorMain = '#4ca1f5'
