@@ -19,29 +19,36 @@ export async function convertVector(text) {
     }
 }
 
-export async function askOpenAI(question, bot_id) {
+export async function askOpenAI(question, bot_id, historyMessage = null) {
     try {
         const prompt = await handleGetPrompt(question, bot_id)
 
+        const messages = [
+            {
+                role: 'system',
+                content: `Bạn là một nhân viên tư vấn thân thiện của doanh nghiệp.
+Bạn luôn trả lời người dùng một cách ngắn gọn, rõ ràng, thân thiện và dễ hiểu.
+Luôn xưng là "mình", gọi người dùng là "bạn", và kết thúc câu bằng emoji nhẹ nhàng khi phù hợp 😊.
+Chỉ trả lời dựa trên thông tin đã được cung cấp trong đoạn sau.`
+            },
+            ...(historyMessage || []),
+            {
+                role: 'user',
+                content: prompt,
+            },
+        ]
+
         const completion = await openai.chat.completions.create({
             model: 'gpt-4o',
-            messages: [
-                {
-                    role: 'system',
-                    content: 'Bạn là một trợ lý AI trả lời ngắn gọn, dựa trên tri thức được cung cấp.',
-                },
-                {
-                    role: 'user',
-                    content: prompt,
-                },
-            ],
+            messages,
             temperature: 0.4,
             max_tokens: 500,
         })
 
         return completion.choices[0].message.content.trim()
     } catch (error) {
-        return ''
+        console.log(error.message)
+        return 'Xin lỗi mình sẽ quay lại sau!'
     }
 }
 

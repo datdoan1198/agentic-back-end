@@ -3,7 +3,7 @@ import * as fbService from '@/app/services/facebook.service'
 import * as openAIService from '@/app/services/openAI.service'
 import * as conversationService from '@/app/services/conversation.service'
 import {db} from '@/configs'
-import {FacebookService, STATUS_BOT, TYPE_CONVERSATION} from '@/models'
+import {Conversation, FacebookService, STATUS_BOT, TYPE_CONVERSATION} from '@/models'
 
 export async function getListBotChats(req, res) {
     res.status(201).jsonify(await botService.filter(req.currentUser))
@@ -130,23 +130,36 @@ export async function receiveMessageFb(req, res) {
                 if (event.message && event.sender) {
                     const senderId = event.sender.id
                     const userMessage = event.message.text
-                    const messageSend = await openAIService.askOpenAI(userMessage, fbConfig.bot_id)
 
                     if (parseInt(senderId) !== fbConfig.page_id) {
+                        const conversation = await Conversation.findOne({
+                            platform_user_id: String(senderId),
+                            bot_id: fbConfig.bot_id
+                        })
+                        let historyMessage = []
+                        if (conversation) {
+                            historyMessage = await conversationService.handleGetMessageOfOpenAI(conversation._id)
+                        }
+                        const messageSend = await openAIService.askOpenAI(userMessage, fbConfig.bot_id, historyMessage)
+
                         await fbService.sendMessage(fbConfig.page_access_token, senderId, messageSend)
                         await db.transaction(async function (session) {
                             await conversationService.createMessage(
                                 {
-                                    receiver_id: senderId,
+                                    receiver_id: String(senderId),
                                     user_message: userMessage
                                 },
                                 {
                                     sender_id: fbConfig.page_id,
-                                    bot_message: messageSend
+                                    bot_messages: [
+                                        messageSend
+                                    ]
                                 },
                                 TYPE_CONVERSATION.FB,
                                 fbConfig.bot_id,
-                                session
+                                session,
+                                conversation ? conversation?._id : null,
+                                fbConfig?.bot?.name
                             )
                         })
                     }

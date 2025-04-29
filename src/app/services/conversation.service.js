@@ -1,11 +1,18 @@
-import {Conversation, Message, TYPE_CONVERSATION, TYPE_MESSAGE} from '@/models'
+import {Conversation, Message, TYPE_MESSAGE} from '@/models'
 import _ from 'lodash'
 
-export async function getListConversation ({q, page, per_page, field, sort_order}, bot) {
+export async function getListConversation ({q, page, per_page, field, sort_order, type}, bot) {
     q = q ? {$regex: q, $options: 'i'} : null
+    let conversationIds
+    if (q) {
+        conversationIds = await Message.find({...(q && {$or: [{content: q}]})}).distinct('conversation_id')
+    }
+
+    console.log(conversationIds)
 
     const filter = {
-        ...(q && {$or: [{name: q}]}),
+        ...(conversationIds && conversationIds.length > 0 && {_id: { $in: conversationIds }}),
+        ...(type && { type }),
         bot_id: bot._id
     }
 
@@ -51,14 +58,6 @@ export async function getListMessage ({q, page, per_page, field, sort_order}, co
 export async function createMessage(
     userInfo, botInfo, type, bot_id, session, conversation_id = null, bot_name = ''
 ) {
-    const filter = {
-        ...(type === TYPE_CONVERSATION.FB && {
-            platform_user_id: userInfo.receiver_id,
-            bot_id
-        }),
-        ...(type === TYPE_CONVERSATION.WEB && conversation_id ? { _id: conversation_id } : {})
-    }
-
     const conversationInfo = {
         platform_user_id: userInfo.receiver_id,
         bot_id,
@@ -66,7 +65,7 @@ export async function createMessage(
     }
     let conversion
 
-    if (_.isEmpty(conversation_id) && TYPE_CONVERSATION.WEB) {
+    if (_.isEmpty(conversation_id)) {
         conversion = new Conversation(conversationInfo)
         await conversion.save({ session })
         await handleCreateMessageBot({
@@ -78,9 +77,9 @@ export async function createMessage(
         }, conversion._id, session)
     } else {
         conversion = await Conversation.findOneAndUpdate(
-            filter,
+            {_id : conversation_id},
             {$setOnInsert: conversationInfo},
-            {new: true, upsert: true, session}
+            { new: true, session }
         )
     }
 
@@ -121,5 +120,26 @@ async function handleCreateMessageBot ({sender_id, bot_messages}, conversation_i
         }
 
     }
+}
+
+export async function handleGetMessageOfOpenAI(conversation_id) {
+    if (conversation_id) {
+        const historyMessages = []
+        const messages = await Message.find({conversation_id})
+            .limit(40)
+            .sort({'created_at': 'desc'})
+            .lean()
+
+        if (messages) {
+            messages.map((message) => {
+                historyMessages.push({
+                    role: message.type === TYPE_MESSAGE.BOT ? 'system' : 'user',
+                    content: message.content
+                })
+            })
+        }
+        return historyMessages
+    }
+    return null
 }
 

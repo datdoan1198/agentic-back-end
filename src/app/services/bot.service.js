@@ -1,14 +1,10 @@
 import {Bot, BotConfig, ColorMain, FacebookService, SCAN_TYPE, STATUS_TRAIN, WebKnowledge} from '@/models'
-import puppeteer from 'puppeteer-extra'
-import StealthPlugin from 'puppeteer-extra-plugin-stealth'
 import _ from 'lodash'
 import * as vectorKnowledgeService from '@/app/services/vector-knowledge.service'
 import * as webKnowledgeService from '@/app/services/knowledge.service'
 import {FileUpload} from '@/utils/classes'
 import axios from 'axios'
 import * as cheerio from 'cheerio'
-
-puppeteer.use(StealthPlugin())
 
 export async function filter(currentUser) {
     const filter = {
