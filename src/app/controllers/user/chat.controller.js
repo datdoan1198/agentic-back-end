@@ -15,6 +15,11 @@ export async function create(req, res) {
             receiver_id: 'web_client',
             user_message: send_message
         }
+
+        // const isOrder = isOrderIntent(send_message)
+        // console.log(isOrder)
+        // console.log(historyMessage)
+
         const messageSendUser = await openAIService.askOpenAI(send_message, req.bot._id, historyMessage)
         const bot = {
             sender_id: 'web_bot',
@@ -37,3 +42,12 @@ export async function create(req, res) {
         })
     })
 }
+
+// function isOrderIntent(text) {
+//     const keywords = [
+//         'mua', 'đặt hàng', 'muốn mua', 'cho mình đặt', 'mua giúp', 'mình muốn mua', 'đặt giúp'
+//     ]
+//     const lower = text.toLowerCase()
+//     return keywords.some(k => lower.includes(k))
+// }
+
