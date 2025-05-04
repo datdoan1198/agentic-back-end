@@ -14,6 +14,7 @@ export function getPromptAskOpenAI(business, context, userQuestion) {
           - Tên sản phẩm.
           - Link sản phẩm (sử dụng thẻ <a target="_blank"> và làm nổi bật).
           - Giá bán (ghi rõ bằng đơn vị VNĐ, ví dụ: 199.000đ).
+        - Nếu khách hàng có nhu cầu đặt hàng hoặc đặt lịch, hãy lịch sự nói khách hàng liên hệ vào địa chỉ của doanh nghiệp 😊.
         
         Chỉ trả lời dựa trên thông tin đã cung cấp phía trên. Nếu không có thông tin, hãy lịch sự nói rằng bạn chưa có dữ liệu về điều đó.
     `
