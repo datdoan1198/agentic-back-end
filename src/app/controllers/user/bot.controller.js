@@ -3,7 +3,7 @@ import * as fbService from '@/app/services/facebook.service'
 import * as openAIService from '@/app/services/openAI.service'
 import * as conversationService from '@/app/services/conversation.service'
 import {db} from '@/configs'
-import {Conversation, FacebookService, STATUS_BOT, TYPE_CONVERSATION} from '@/models'
+import {BotConfig, Conversation, FacebookService, STATUS_BOT, TYPE_CONVERSATION} from '@/models'
 
 export async function getListBotChats(req, res) {
     res.status(201).jsonify(await botService.filter(req.currentUser))
@@ -137,10 +137,17 @@ export async function receiveMessageFb(req, res) {
                             bot_id: fbConfig.bot_id
                         })
                         let historyMessage = []
+                        let promptOrder = null
                         if (conversation) {
+                            const configBot = await BotConfig.findOne({bot_id: fbConfig.bot_id})
+                            if (configBot?.is_order && conversation._id) {
+                                await db.transaction(async function (session) {
+                                    promptOrder =  await openAIService.handleGetPromptOrder(userMessage, conversation._id, session)
+                                })
+                            }
                             historyMessage = await conversationService.handleGetMessageOfOpenAI(conversation._id)
                         }
-                        const messageSend = await openAIService.askOpenAI(userMessage, fbConfig.bot_id, historyMessage)
+                        const messageSend = await openAIService.askOpenAI(userMessage, fbConfig.bot_id, historyMessage, promptOrder)
 
                         await fbService.sendMessage(fbConfig.page_access_token, senderId, messageSend)
                         await db.transaction(async function (session) {
