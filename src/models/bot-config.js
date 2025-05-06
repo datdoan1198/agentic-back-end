@@ -28,6 +28,10 @@ const BotConfig = createModel(
             type: ObjectId,
             required: true,
         },
+        is_order: {
+            type: Boolean,
+            default: false,
+        }
     },
     {
         virtuals: {

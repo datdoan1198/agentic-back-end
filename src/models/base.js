@@ -76,4 +76,23 @@ export const TYPE_MESSAGE = {
     BOT: 'BOT',
 }
 
+export const STATUS_CONVERSATION_ORDER = {
+    PENDING: 'PENDING',
+    ACCEPT: 'ACCEPT',
+    DONE: 'DONE',
+    CANCEL: 'CANCEL',
+}
+
 export const ColorMain = '#4ca1f5'
+
+export const KEYS_ORDER = [
+    'mua', 'đặt hàng', 'muốn mua', 'muốn đặt', 'cho mình đặt', 'mua giúp', 'mình muốn mua', 'đặt giúp'
+]
+
+export const KEYS_CANCEL = [
+    'hủy', 'không đặt', 'không muốn đặt'
+]
+
+export const KEYS_ACCEPT = [
+    'đồng ý', 'chấp nhận', 'giao hàng', 'xác nhận'
+]

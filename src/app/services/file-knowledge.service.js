@@ -41,7 +41,7 @@ export async function createBotWithFile(currentUser, infoFile, body, session) {
     await bot.save({ session })
 
     await logo_message.save('bot/logos')
-    const config = new BotConfig({logo_message, color, bot_id: bot._id})
+    const config = new BotConfig({logo_message, color, bot_id: bot._id, is_order: true})
     await config.save({ session })
 
     await createFile(infoFile, bot, session)
