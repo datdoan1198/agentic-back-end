@@ -8,8 +8,6 @@ export async function getListConversation ({q, page, per_page, field, sort_order
         conversationIds = await Message.find({...(q && {$or: [{content: q}]})}).distinct('conversation_id')
     }
 
-    console.log(conversationIds)
-
     const filter = {
         ...(conversationIds && conversationIds.length > 0 && {_id: { $in: conversationIds }}),
         ...(type && { type }),
