@@ -1,6 +1,8 @@
 import OpenAI from 'openai'
-import {Bot, KnowledgeVector} from '@/models'
+import {Bot, KEYS_ACCEPT, KEYS_CANCEL, KEYS_ORDER, KnowledgeVector, STATUS_CONVERSATION_ORDER} from '@/models'
 import {getPromptAskOpenAI} from '@/utils/helpers/promp.helper'
+import * as ConversationOrderService from '@/app/services/conversation-order.service'
+import _ from 'lodash'
 
 const openai = new OpenAI({
     apiKey: process.env.OPENAI_API_KEY
@@ -144,6 +146,101 @@ export function getPromptOrder(formOrder, orderInfo) {
     }
 
     return result
+}
+
+export async function handleGetPromptOrder (send_message, conversation_id, session) {
+    const oldOrder = await ConversationOrderService.getConversationOrder(conversation_id)
+    const isOrder = isStatusOrder(send_message, KEYS_ORDER)
+    const isAccept = isStatusOrder(send_message, KEYS_ACCEPT)
+    const isCancel = isStatusOrder(send_message, KEYS_CANCEL)
+
+    if (isAccept && oldOrder?.status === STATUS_CONVERSATION_ORDER.PENDING) {
+        const isValidObject = Object.values(JSON.parse(oldOrder.order_information)).every(value => value !== null && value !== '')
+        if (isValidObject) {
+            await ConversationOrderService.updateStatusConversationOrder(
+                conversation_id, STATUS_CONVERSATION_ORDER.ACCEPT, session
+            )
+            return '// Thông báo đơn hàng đã được đặt thành công, yêu cầu khách hàng để ý điện thoại'
+        }
+    }
+
+    if (isCancel && oldOrder?.status === STATUS_CONVERSATION_ORDER.PENDING) {
+        await ConversationOrderService.updateStatusConversationOrder(
+            conversation_id, STATUS_CONVERSATION_ORDER.CANCEL, session
+        )
+        return '// Thông báo đơn hàng đã được hủy'
+    }
+
+    const formOrder = [
+        {
+            label: 'Họ và tên',
+            value: 'name'
+        },
+        {
+            label: 'Số điện thoại',
+            value: 'phone'
+        },
+        {
+            label: 'Địa chỉ',
+            value: 'address'
+        },
+        {
+            label: 'Số lượng',
+            value: 'quantity'
+        },
+        {
+            label: 'Loại sản phẩm',
+            value: 'type'
+        }
+    ]
+
+    let orderInformation = []
+
+    if (isOrder || oldOrder?.status === STATUS_CONVERSATION_ORDER.PENDING) {
+        let stringifyOrderInformation
+
+        if (oldOrder) {
+            stringifyOrderInformation = oldOrder.order_information
+        } else {
+            const convertFormOrder = formOrder.reduce((acc, item) => {
+                acc[item.value] = ''
+                return acc
+            }, {})
+
+            stringifyOrderInformation = JSON.stringify(convertFormOrder)
+        }
+
+        orderInformation = await getInfoOrder(send_message, stringifyOrderInformation)
+
+        if (oldOrder) {
+            orderInformation = mergeOrderInfo(JSON.parse(oldOrder.order_information), orderInformation)
+        }
+
+        await ConversationOrderService.createOrUpdateConversationOrder(
+            conversation_id, JSON.stringify(orderInformation), session
+        )
+    }
+
+    if (!_.isEmpty(orderInformation)) {
+        return getPromptOrder(formOrder, orderInformation)
+    }
+    return null
+}
+
+function mergeOrderInfo(current, extracted) {
+    const result = { ...current }
+    for (const key in extracted) {
+        const value = extracted[key]
+        if (value && value.trim() !== '') {
+            result[key] = value.trim()
+        }
+    }
+    return result
+}
+
+function isStatusOrder(text, keywords) {
+    const lower = text.toLowerCase()
+    return keywords.some(k => lower.includes(k))
 }
 
 export function cosineSimilarity(vecA, vecB) {
