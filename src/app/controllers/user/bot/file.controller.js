@@ -6,13 +6,6 @@ export async function getListKnowledgeFiles(req, res) {
     res.status(201).jsonify(result)
 }
 
-export async function createBotWithFile(req, res) {
-    await db.transaction(async function (session) {
-        const result = await fileKnowledgeService.createBotWithFile(req.currentUser, req.infoFile, req.body, session)
-        res.status(201).jsonify(result)
-    })
-}
-
 export async function createFile(req, res) {
     await db.transaction(async function (session) {
         const result = await fileKnowledgeService.createFile(req.infoFile, req.bot, session)

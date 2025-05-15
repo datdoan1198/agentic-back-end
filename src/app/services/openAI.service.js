@@ -1,6 +1,6 @@
 import OpenAI from 'openai'
-import {Bot, KEYS_ACCEPT, KEYS_CANCEL, KEYS_ORDER, KnowledgeVector, STATUS_CONVERSATION_ORDER} from '@/models'
-import {getPromptAskOpenAI} from '@/utils/helpers/promp.helper'
+import {KnowledgeVector, STATUS_CONVERSATION_ORDER} from '@/models'
+import {getPromptAskOpenAI, promptSummaryConversation, promptSummaryProductWeb} from '@/utils/helpers/promp.helper'
 import * as ConversationOrderService from '@/app/services/conversation-order.service'
 import _ from 'lodash'
 
@@ -21,21 +21,13 @@ export async function convertVector(text) {
     }
 }
 
-export async function askOpenAI(question, bot_id, historyMessage = null, promptOrder = null) {
+export async function askOpenAI(question, bot, historyMessage = '', promptOrder = null) {
     try {
-        const prompt = await handleGetPrompt(question, bot_id, promptOrder)
+        const prompt = await handleGetPrompt(question, bot, promptOrder, historyMessage)
 
         const messages = [
             {
                 role: 'system',
-                content: `Bạn là một nhân viên tư vấn thân thiện của doanh nghiệp.
-Bạn luôn trả lời người dùng một cách ngắn gọn, rõ ràng, thân thiện và dễ hiểu.
-Luôn xưng là "mình", gọi người dùng là "bạn", và kết thúc câu bằng emoji nhẹ nhàng khi phù hợp 😊.
-Chỉ trả lời dựa trên thông tin đã được cung cấp trong đoạn sau.`
-            },
-            ...(historyMessage || []),
-            {
-                role: 'user',
                 content: prompt,
             },
         ]
@@ -91,17 +83,84 @@ Nếu không tìm thấy giá trị cho một trường nào đó, hãy để tr
     }
 }
 
-export async function handleGetPrompt (question, bot_id, promptOrder) {
-    const queryEmbedding = await convertVector(question)
-    const bot = await Bot.findOne({_id: bot_id, deleted: false,})
-    let context = ''
-    let businessInfo = ''
+export async function summaryWeb(content) {
+    try {
+        const prompt = promptSummaryProductWeb(content)
 
-    if (bot) {
-        businessInfo += bot.name
+        const messages = [
+            {
+                role: 'system',
+                content: prompt,
+            },
+        ]
+
+        const completion = await openai.chat.completions.create({
+            model: 'gpt-4o',
+            messages,
+            temperature: 0.4,
+            max_tokens: 500,
+        })
+
+        return completion.choices[0].message.content.trim()
+    } catch (error) {
+        console.log(error.message)
+        return content
     }
+}
 
-    const results = await KnowledgeVector.find({bot_id})
+export async function summaryHistoryConversation(historyConversation, messageCurrent) {
+    try {
+        const promptSummaryHistoryConversation = promptSummaryConversation(historyConversation, messageCurrent)
+
+        const messages = [
+            {
+                role: 'system',
+                content: promptSummaryHistoryConversation,
+            },
+        ]
+
+        const completion = await openai.chat.completions.create({
+            model: 'gpt-4o',
+            messages,
+            temperature: 0.4,
+            max_tokens: 500,
+        })
+
+        return completion.choices[0].message.content.trim()
+    } catch (error) {
+        console.log(error.message)
+        return messageCurrent
+    }
+}
+
+export async function checkOrderAvailable(prompt, send_message) {
+    try {
+        const messages = [
+            {
+                role: 'system',
+                content: prompt,
+            },
+        ]
+
+        const completion = await openai.chat.completions.create({
+            model: 'gpt-4o',
+            messages,
+            temperature: 0.4,
+            max_tokens: 500,
+        })
+
+        return completion.choices[0].message.content.trim()
+    } catch (error) {
+        console.log(error.message)
+        return send_message
+    }
+}
+
+export async function handleGetPrompt (question, bot, promptOrder, historyMessage) {
+    const queryEmbedding = await convertVector(question)
+    let knowledge = ''
+
+    const results = await KnowledgeVector.find({bot_id: bot._id})
 
     if (results && results.length > 0) {
         const ranked = results
@@ -113,10 +172,10 @@ export async function handleGetPrompt (question, bot_id, promptOrder) {
             .slice(0, 10)
 
         const topTexts = ranked.map(item => item.knowledgeVector.text).filter(Boolean)
-        context += topTexts.join('\n---\n')
+        knowledge += topTexts.join('\n---\n')
     }
 
-    return getPromptAskOpenAI(businessInfo, context, question, promptOrder)
+    return getPromptAskOpenAI(bot, bot.business, knowledge, question, promptOrder, historyMessage)
 }
 
 export function getPromptOrder(formOrder, orderInfo) {
@@ -148,11 +207,16 @@ export function getPromptOrder(formOrder, orderInfo) {
     return result
 }
 
-export async function handleGetPromptOrder (send_message, conversation_id, session) {
+export async function handleGetPromptOrder (send_message, conversation_id, formOrder, session) {
     const oldOrder = await ConversationOrderService.getConversationOrder(conversation_id)
-    const isOrder = isStatusOrder(send_message, KEYS_ORDER)
-    const isAccept = isStatusOrder(send_message, KEYS_ACCEPT)
-    const isCancel = isStatusOrder(send_message, KEYS_CANCEL)
+    const promptOrder = `Tin nhắn sau có phải là người dùng đang có ý định chắc chắn muốn đặt hàng không? Trả lời chỉ "yes" hoặc "no".\\n\\n"${send_message}"`
+    const isOrder = await isStatusOrder(send_message, promptOrder)
+
+    const promptAccept = `Tin nhắn sau có phải là người dùng đang có ý định chắc chắn xác nhận đơn hàng không? Trả lời chỉ "yes" hoặc "no".\\n\\n"${send_message}"`
+    const isAccept = await isStatusOrder(send_message, promptAccept)
+
+    const promptCancel = `Tin nhắn sau có phải là người dùng đang có ý định chắc chắn hủy đơn hàng không? Trả lời chỉ "yes" hoặc "no".\\n\\n"${send_message}"`
+    const isCancel = await isStatusOrder(send_message, promptCancel)
 
     if (isAccept && oldOrder?.status === STATUS_CONVERSATION_ORDER.PENDING) {
         const isValidObject = Object.values(JSON.parse(oldOrder.order_information)).every(value => value !== null && value !== '')
@@ -170,29 +234,6 @@ export async function handleGetPromptOrder (send_message, conversation_id, sessi
         )
         return '// Thông báo đơn hàng đã được hủy'
     }
-
-    const formOrder = [
-        {
-            label: 'Họ và tên',
-            value: 'name'
-        },
-        {
-            label: 'Số điện thoại',
-            value: 'phone'
-        },
-        {
-            label: 'Địa chỉ',
-            value: 'address'
-        },
-        {
-            label: 'Số lượng',
-            value: 'quantity'
-        },
-        {
-            label: 'Loại sản phẩm',
-            value: 'type'
-        }
-    ]
 
     let orderInformation = []
 
@@ -238,9 +279,9 @@ function mergeOrderInfo(current, extracted) {
     return result
 }
 
-function isStatusOrder(text, keywords) {
-    const lower = text.toLowerCase()
-    return keywords.some(k => lower.includes(k))
+async function isStatusOrder(text, prompt) {
+    const result = await checkOrderAvailable(prompt, text)
+    return result.toLowerCase().includes('yes')
 }
 
 export function cosineSimilarity(vecA, vecB) {

@@ -1,56 +1,15 @@
 import Joi from 'joi'
 import { AsyncValidate, FileUpload } from '@/utils/classes'
-import {Bot, STATUS_BOT, WebKnowledge} from '@/models'
-import {handleGetInfoPage} from '@/app/services/bot.service'
+import {STATUS_BOT, STATUS_ORDER, WebKnowledge} from '@/models'
+import {handleGetInfoPageWithPuppeteer} from '@/app/services/bot.service'
 const ExcelJS = require('exceljs')
 const path = require('path')
 
 const MAX_UPLOAD_SIZE = parseInt(process.env.MAX_UPLOAD_SIZE, 10) || 5
 
 export const createBot = Joi.object({
-    url: Joi.string()
-        .custom(
-            (value, helpers) =>
-                new AsyncValidate(value, async function (req) {
-                    const url = new URL(value)
-                    const baseUrl = `${url.protocol}//${url.hostname}`
-                    const bot = await Bot.findOne({
-                        url: { $regex: `^${baseUrl.replace(/\/+$/, '')}`, $options: 'i' },
-                        deleted: false,
-                    })
-                    if (!bot) {
-                        req.infoUrl = await handleGetInfoPage(req.body.url)
-                        if (req.infoUrl) {
-                            return value
-                        } else {
-                            return helpers.error('any.invalid')
-                        }
-                    }
-                    return helpers.error('any.exists')
-                })
-        )
-        .required()
-        .label('Đường dẫn'),
-})
-
-export const createBotWithFile = Joi.object({
     name: Joi.string().required().label('Tên bot'),
-    description: Joi.string().required().label('Mô tả'),
-    color: Joi.string().required().label('Màu sắc'),
-    logo: Joi.object({
-        originalname: Joi.string().trim().required().label('Tên logo'),
-        mimetype: Joi.valid('image/jpeg', 'image/png', 'image/svg+xml', 'image/webp')
-            .required()
-            .label('Định dạng Logo'),
-        buffer: Joi.binary()
-            .max(MAX_UPLOAD_SIZE * 1024 ** 2)
-            .required()
-            .label('Logo'),
-    })
-        .unknown(true)
-        .instance(FileUpload)
-        .required()
-        .label('Logo'),
+    description: Joi.string().required().label('Mô tả công việc của bot'),
     logo_message: Joi.object({
         originalname: Joi.string().trim().required().label('Tên logo nút trò chuyện'),
         mimetype: Joi.valid('image/jpeg', 'image/png', 'image/svg+xml', 'image/webp')
@@ -65,6 +24,35 @@ export const createBotWithFile = Joi.object({
         .instance(FileUpload)
         .required()
         .label('Logo nút trò chuyện'),
+    color: Joi.string().required().label('Màu sắc'),
+    name_business: Joi.string().required().label('Tên doanh nghiệp'),
+    logo: Joi.object({
+        originalname: Joi.string().trim().required().label('Tên logo'),
+        mimetype: Joi.valid('image/jpeg', 'image/png', 'image/svg+xml', 'image/webp')
+            .required()
+            .label('Định dạng Logo'),
+        buffer: Joi.binary()
+            .max(MAX_UPLOAD_SIZE * 1024 ** 2)
+            .required()
+            .label('Logo'),
+    })
+        .unknown(true)
+        .instance(FileUpload)
+        .required()
+        .label('Logo doanh nghiệp'),
+    url: Joi.string()
+        .allow('', null)
+        .custom(
+            (value, helpers) =>
+                new AsyncValidate(value, async function (req) {
+                    req.infoUrl = await handleGetInfoPageWithPuppeteer(req.body.url)
+                    if (req.infoUrl) {
+                        return value
+                    }
+                    return helpers.error('any.invalid')
+                })
+        )
+        .label('Đường dẫn'),
     file: Joi.object({
         originalname: Joi.string().trim().required().label('Tên file'),
         mimetype: Joi.valid(
@@ -78,7 +66,7 @@ export const createBotWithFile = Joi.object({
             .required()
             .label('File'),
     })
-        .required()
+        .optional()
         .unknown(true)
         .instance(FileUpload)
         .custom(
@@ -111,25 +99,11 @@ export const createBotWithFile = Joi.object({
                     }
                 })
         )
-        .allow(null)
         .label('File'),
 })
 
 export const updateBot = Joi.object({
-    name: Joi.string().label('Tên bot'),
-    favicon: Joi.alternatives()
-        .try(
-            Joi.string(),
-            Joi.object({
-                mimetype: Joi.valid('image/jpeg', 'image/png', 'image/svg+xml', 'image/webp')
-                    .required()
-                    .label('Image format'),
-            })
-                .unknown(true)
-                .instance(FileUpload)
-        )
-        .allow('', {}, 'null')
-        .label('Favicon'),
+    name: Joi.string().required().label('Tên bot'),
     logo_message: Joi.alternatives()
         .try(
             Joi.string(),
@@ -143,11 +117,29 @@ export const updateBot = Joi.object({
         )
         .allow('', {}, 'null')
         .label('Logo nút nói chuyện'),
-    color: Joi.string().label('Màu sắc'),
-    description: Joi.string().label('Mô tả'),
-    welcome_messages: Joi.array().items(Joi.string()).label('Tin nhắn chào mừng'),
-    quick_prompts: Joi.array().items(Joi.string()).label('Câu hỏi nhanh'),
-    auto_display_chatbox: Joi.string().label('Tự động hiển thị hộp chat'),
+    color: Joi.string().required().label('Màu sắc'),
+    description: Joi.string().required().label('Mô tả'),
+    name_business: Joi.string().required().label('Tên doanh nghiệp'),
+    logo: Joi.alternatives()
+        .try(
+            Joi.string(),
+            Joi.object({
+                mimetype: Joi.valid('image/jpeg', 'image/png', 'image/svg+xml', 'image/webp')
+                    .required()
+                    .label('Image format'),
+            })
+                .unknown(true)
+                .instance(FileUpload)
+        )
+        .allow('', {}, 'null')
+        .label('Logo doanh nghiệp'),
+    is_order: Joi.string().required().valid(...Object.values(STATUS_ORDER)).label('Trạng thái đặt hàng'),
+    form_order: Joi.string()
+        .when('is_order', {
+            is: STATUS_ORDER.ACTIVE,
+            then: Joi.string().required().label('Form đặt hàng'),
+            otherwise: Joi.string().allow('').label('Form đặt hàng'),
+        }),
 })
 
 export const selectPageFB = Joi.object({
@@ -169,7 +161,7 @@ export const createLink = Joi.object({
                     if (!value.startsWith('https://')) return helpers.error('any.invalid')
                     const link = await WebKnowledge.findOne({ url: value, bot_id: req.bot._id })
                     if (!link) {
-                        req.infoUrl = await handleGetInfoPage(value)
+                        req.infoUrl = await handleGetInfoPageWithPuppeteer(value)
                         return value
                     }
                     return helpers.error('any.exists')

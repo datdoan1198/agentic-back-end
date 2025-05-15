@@ -3,7 +3,10 @@ import {SCAN_TYPE, STATUS_TRAIN, WebKnowledge} from '@/models'
 export async function createKnowledgeWeb(
     knowledgeData, bot, session, status = STATUS_TRAIN.UNTRAINED, scan_type = SCAN_TYPE.ONE
 ) {
-    const isWebKnowledgeExit = await WebKnowledge.findOne({url: knowledgeData.url})
+    const isWebKnowledgeExit = await WebKnowledge.findOne({
+        url: knowledgeData.url,
+        bot_id: bot._id,
+    })
     if (!isWebKnowledgeExit) {
         const knowledge = new WebKnowledge({
             ...knowledgeData,

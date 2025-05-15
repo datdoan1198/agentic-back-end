@@ -51,6 +51,11 @@ export const STATUS_BOT = {
     DE_ACTIVE: 'DE_ACTIVE',
 }
 
+export const STATUS_ORDER = {
+    ACTIVE: 'ACTIVE',
+    DE_ACTIVE: 'DE_ACTIVE',
+}
+
 export const GENDER = {
     FEMALE: 'FEMALE',
     MALE: 'MALE',
@@ -85,14 +90,29 @@ export const STATUS_CONVERSATION_ORDER = {
 
 export const ColorMain = '#4ca1f5'
 
-export const KEYS_ORDER = [
-    'mua', 'đặt hàng', 'muốn mua', 'muốn đặt', 'cho mình đặt', 'mua giúp', 'mình muốn mua', 'đặt giúp'
-]
-
-export const KEYS_CANCEL = [
-    'hủy', 'không đặt', 'không muốn đặt'
-]
-
-export const KEYS_ACCEPT = [
-    'đồng ý', 'chấp nhận', 'giao hàng', 'xác nhận'
+export const DEFAULT_FORM_ORDER = [
+    {
+        label: 'Họ và tên',
+        value: 'name'
+    },
+    {
+        label: 'Số điện thoại',
+        value: 'phone'
+    },
+    {
+        label: 'Địa chỉ',
+        value: 'address'
+    },
+    {
+        label: 'Số lượng',
+        value: 'quantity'
+    },
+    {
+        label: 'Sản phẩm',
+        value: 'product'
+    },
+    {
+        label: 'Thời gian',
+        value: 'date_time'
+    }
 ]

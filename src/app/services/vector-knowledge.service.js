@@ -4,9 +4,7 @@ import {KnowledgeVector} from '@/models'
 export async function createVectorKnowledge(text, bot_id, source_id, session) {
     const vector = await openAIService.convertVector(text)
 
-    const isKnowledgeExist = await isKnowledgeExists(vector, bot_id)
-
-    if ( !isKnowledgeExist && vector && vector.length > 0) {
+    if (vector && vector.length > 0) {
         const knowledgeVector = await KnowledgeVector.findOneAndUpdate(
             { source_id },
             {
@@ -17,20 +15,6 @@ export async function createVectorKnowledge(text, bot_id, source_id, session) {
 
         return knowledgeVector
     }
-}
-
-async function isKnowledgeExists(vector, bot_id) {
-    const results = await KnowledgeVector.find({bot_id})
-
-    for (const knowledgeVector of results) {
-        const similarity = openAIService.cosineSimilarity(vector, knowledgeVector.vector)
-
-        if (similarity > 0.9) {
-            return true
-        }
-    }
-
-    return false
 }
 
 export async function updateVectorKnowledge(text, source_id, session) {
