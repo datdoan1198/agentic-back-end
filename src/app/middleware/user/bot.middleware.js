@@ -1,6 +1,6 @@
 import { abort } from '@/utils/helpers'
 import { Bot, Conversation, WebKnowledge } from '@/models'
-import { handleGetInfoPage } from '@/app/services/bot.service'
+import {handleGetInfoPageWithPuppeteer} from '@/app/services/bot.service'
 import { isValidObjectId } from 'mongoose'
 
 export async function checkUrlBotExist(req, res, next) {
@@ -12,7 +12,7 @@ export async function checkUrlBotExist(req, res, next) {
         deleted: false,
     })
     if (!bot) {
-        req.infoUrl = await handleGetInfoPage(req.body.url)
+        req.infoUrl = await handleGetInfoPageWithPuppeteer(req.body.url)
         if (req.infoUrl) {
             next()
             return
@@ -30,7 +30,9 @@ export async function checkBotExist(req, res, next) {
             _id: req.params.botId,
             ...(req.currentUser && {user_id: req.currentUser._id}),
             deleted: false,
-        }).populate('fb').populate('config_bot')
+        }).populate('fb')
+            .populate('business')
+            .populate('order_config')
 
         if (bot) {
             req.bot = bot

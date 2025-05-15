@@ -1,28 +1,28 @@
-import createModel, { ObjectId, STATUS_BOT } from './base'
+import createModel, {ObjectId, STATUS_BOT, STATUS_ORDER} from './base'
 
 const Bot = createModel(
     'Bot',
     'bots',
     {
-        url: {
-            type: String,
-            default: '',
-        },
         name: {
             type: String,
             required: true,
         },
-        logo: {
-            type: String,
-            default: '',
-        },
-        favicon: {
-            type: String,
-            default: '',
-        },
         description: {
             type: String,
             default: '',
+        },
+        logo_message: {
+            type: String,
+            default: '',
+        },
+        color: {
+            type: String,
+            default: '',
+        },
+        welcome_messages: {
+            type: [String],
+            default: ['Xin chào, tôi là trợ lý ảo của bạn 👋', 'Tôi rất sẵn lòng hỗ trợ 😊'],
         },
         status: {
             type: String,
@@ -33,6 +33,12 @@ const Bot = createModel(
         user_id: {
             type: ObjectId,
             required: true,
+        },
+        is_order: {
+            type: String,
+            enum: Object.values(STATUS_ORDER),
+            required: true,
+            default: STATUS_ORDER.ACTIVE,
         },
         deleted: {
             type: Boolean,
@@ -74,9 +80,17 @@ const Bot = createModel(
                     justOne: true,
                 },
             },
-            config_bot: {
+            business: {
                 options: {
-                    ref: 'BotConfig',
+                    ref: 'BusinessConfig',
+                    localField: '_id',
+                    foreignField: 'bot_id',
+                    justOne: true,
+                },
+            },
+            order_config: {
+                options: {
+                    ref: 'OrderConfig',
                     localField: '_id',
                     foreignField: 'bot_id',
                     justOne: true,

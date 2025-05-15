@@ -1,5 +1,6 @@
-import {Conversation, Message, TYPE_MESSAGE} from '@/models'
+import {Conversation, Message, TYPE_MESSAGE, ConversationSummary} from '@/models'
 import _ from 'lodash'
+import * as openAIService from '@/app/services/openAI.service'
 
 export async function getListConversation ({q, page, per_page, field, sort_order, type}, bot) {
     q = q ? {$regex: q, $options: 'i'} : null
@@ -83,6 +84,8 @@ export async function createMessage(
 
     await handleSaveMessage(userInfo, botInfo, conversion._id, session)
 
+    await createOrUpdateHistoryConversation(userInfo, botInfo, conversion._id, session)
+
     return conversion
 }
 
@@ -139,5 +142,23 @@ export async function handleGetMessageOfOpenAI(conversation_id) {
         return historyMessages
     }
     return null
+}
+
+async function createOrUpdateHistoryConversation (userInfo, botInfo, conversation_id, session) {
+    const oldHistory = await ConversationSummary.findOne({conversation_id})
+
+    const messages = `
+        Người dùng hỏi: ${userInfo.user_message}
+        Bot trả lời: ${botInfo.bot_messages[0]}
+    `
+    const content = await openAIService.summaryHistoryConversation(oldHistory?.content || '', messages)
+    await ConversationSummary.findOneAndUpdate(
+        {conversation_id},
+        {
+            $set: { content },
+            $setOnInsert: {conversation_id}
+        },
+        { upsert: true, new: true, session }
+    )
 }
 

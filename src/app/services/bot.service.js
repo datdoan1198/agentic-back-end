@@ -1,10 +1,14 @@
-import {Bot, BotConfig, ColorMain, FacebookService, SCAN_TYPE, STATUS_TRAIN, WebKnowledge} from '@/models'
+import {Bot, FacebookService, OrderConfig, SCAN_TYPE, STATUS_ORDER, STATUS_TRAIN, WebKnowledge} from '@/models'
 import _ from 'lodash'
 import * as vectorKnowledgeService from '@/app/services/vector-knowledge.service'
 import * as webKnowledgeService from '@/app/services/knowledge.service'
 import {FileUpload} from '@/utils/classes'
 import axios from 'axios'
 import * as cheerio from 'cheerio'
+import {createFile} from '@/app/services/file-knowledge.service'
+import BusinessConfig from '../../models/business-config'
+import * as openAIService from '@/app/services/openAI.service'
+const puppeteer = require('puppeteer')
 
 export async function filter(currentUser) {
     const filter = {
@@ -28,7 +32,7 @@ export async function filter(currentUser) {
 }
 
 export async function getDetailBot(botId) {
-    const bot = await Bot.findOne({ _id: botId, deleted: false }).populate('config_bot')
+    const bot = await Bot.findOne({ _id: botId, deleted: false }).populate('business').populate('order_config')
     const configFb = await FacebookService.findOne({ bot_id: botId })
     bot.is_connect_fb = !!configFb
     if (!_.isEmpty(configFb) && !_.isEmpty(configFb.page_access_token)) {
@@ -37,78 +41,89 @@ export async function getDetailBot(botId) {
             name: configFb.page_name,
         }
     }
-    if (bot?.config_bot?.logo_message) {
-        bot.config_bot.logo_message = FileUpload.in(bot.config_bot.logo_message)
+    if (bot.logo_message) {
+        bot.logo_message = FileUpload.in(bot.logo_message)
     }
-    if (bot.favicon) {
-        bot.favicon = FileUpload.in(bot.favicon)
+    if (bot.business) {
+        bot.business.logo = FileUpload.in(bot.business.logo)
     }
     return bot
 }
 
-export async function createBot(currentUser, infoUrl, session) {
+export async function createBot(currentUser, infoUrl, infoFile, body, session) {
+    const {
+        name, description, logo_message, color,
+        name_business, logo,
+    } = body
+
+    await logo_message.save('bot/logos')
     const bot = new Bot({
-        ...infoUrl,
+        name, description, logo_message, color,
         user_id: currentUser._id,
     })
     await bot.save({ session })
 
-    const config = new BotConfig({
-        logo_message: infoUrl.favicon,
-        color: ColorMain,
+    await logo.save('bot/logos')
+    const businessConfig = new BusinessConfig({
+        name: name_business,
+        logo,
         bot_id: bot._id
     })
-    await config.save({ session })
+    await businessConfig.save({ session })
 
-    infoUrl && infoUrl.url && await handleScanAllLinks(infoUrl, bot, session)
+    infoUrl && infoUrl.url && await handleCreateWebKnowledgeAndScanOneLink(bot, infoUrl, session)
+    infoFile && await createFile(infoFile, bot, session)
     return bot
 }
 
 export async function updateBot(currentUser, bot, data, session) {
     const {
-        name, favicon,  description,
-        color, logo_message, welcome_messages, quick_prompts, auto_display_chatbox
+        name,   description, color, logo_message, is_order, form_order,
+        logo, name_business
     } = data
 
-    let pathLogoMessage = bot?.config_bot?.logo_message
-
+    let pathLogoMessage = bot.logo_message
     if (logo_message && logo_message instanceof FileUpload) {
-        if (bot?.config_bot?.logo_message) {
-            FileUpload.remove(bot.config_bot.logo_message)
+        if (bot.logo_message) {
+            FileUpload.remove(bot.logo_message)
         }
         pathLogoMessage = await logo_message.save('bot/logos')
     }
 
-    if (favicon && favicon instanceof FileUpload) {
-        if (bot.favicon) {
-            FileUpload.remove(bot.favicon)
+    let pathLogo = bot?.business?.logo
+    if (logo && logo instanceof FileUpload) {
+        if (bot?.business?.logo) {
+            FileUpload.remove(bot.business.logo)
         }
-        data.favicon = await data.favicon.save('bot/favicons')
+        pathLogo = await logo.save('bot/logos')
     }
 
     bot.name = name
-    bot.favicon = data.favicon
+    bot.logo_message = pathLogoMessage
     bot.description = description
+    bot.color = color
+    bot.is_order = is_order
     await bot.save({ session })
 
-    await BotConfig.findOneAndUpdate(
+    await BusinessConfig.findOneAndUpdate(
+        { bot_id: bot._id },
         {
-            bot_id: bot._id,
+            name: name_business,
+            logo: pathLogo
         },
-        {
-            logo_message: pathLogoMessage,
-            color: color,
-            welcome_messages,
-            quick_prompts,
-            auto_display_chatbox,
-        },
-        {
-
-            new: true,
-            upsert: true,
-            session,
-        }
+        {new: true, session,}
     )
+
+    if (is_order === STATUS_ORDER.ACTIVE) {
+        await OrderConfig.findOneAndUpdate(
+            { bot_id: bot._id },
+            {
+                $set: { form_order },
+                $setOnInsert: {bot_id: bot._id}
+            },
+            { upsert: true, new: true, session }
+        )
+    }
 
     return bot
 }
@@ -160,7 +175,8 @@ export async function createLink(currentBot, { scan_type }, infoUrl, session) {
 }
 
 export async function rescanLink(currentBot, link, session) {
-    const infoUrl = await handleGetInfoPage(link.url)
+    const infoUrl = await handleGetInfoPageWithPuppeteer(link.url)
+
     const linkUpdate = await webKnowledgeService.updateKnowledgeWeb(
         {
             title: infoUrl.name,
@@ -173,20 +189,13 @@ export async function rescanLink(currentBot, link, session) {
         session
     )
 
-    const textConvertVector = infoUrl.name + '.' + infoUrl.description + '.' + link.url
+    const textConvertVector = infoUrl.name + '\n' + infoUrl.description + '\n' + infoUrl.content
     await vectorKnowledgeService.createVectorKnowledge(
         textConvertVector,
         currentBot._id,
         link._id,
         session
     )
-
-    const links = await handleGetAllUrlInPage(link.url)
-    if (links && links.length > 0) {
-        for (const link of links) {
-            await webKnowledgeService.createLinkNotExist(link, currentBot._id, session)
-        }
-    }
 
     return linkUpdate
 }
@@ -213,7 +222,7 @@ async function handleCreateWebKnowledgeAndScanOneLink (bot, infoUrl, session) {
         STATUS_TRAIN.TRAINED
     )
 
-    const textConvertVector = infoUrl.name + '.' + infoUrl.description + '.' + infoUrl.url
+    const textConvertVector = infoUrl.name + '\n' + infoUrl.description + '\n' + infoUrl.content
     await vectorKnowledgeService.createVectorKnowledge(
         textConvertVector,
         bot._id,
@@ -273,7 +282,61 @@ export async function handleGetInfoPage(url) {
             description: description?.content || '',
             logo: imgLogo,
             favicon,
-            content: `<head>${$('head').html()}</head>`,
+            content: `<body>${$('body').html()}</body>`
+        }
+    } catch (error) {
+        console.error(error.message)
+        return null
+    }
+}
+
+export async function handleGetInfoPageWithPuppeteer(url) {
+    try {
+        const browser = await puppeteer.launch({
+            executablePath: '/usr/bin/chromium-browser',
+            headless: true,
+            args: ['--no-sandbox', '--disable-setuid-sandbox', '--disable-dev-shm-usage']
+        })
+        const page = await browser.newPage()
+        await page.goto(url, { waitUntil: 'networkidle2' })
+
+        const metaTags = await page.evaluate(() => {
+            const tags = []
+            // eslint-disable-next-line no-undef
+            const metaElems = document.querySelectorAll('meta')
+            metaElems.forEach((elem) => {
+                tags.push({
+                    name: elem.getAttribute('name') || null,
+                    property: elem.getAttribute('property') || null,
+                    content: elem.getAttribute('content') || null,
+                })
+            })
+            return tags
+        })
+
+        const rawFavicon = await page.$eval('link[rel~="icon"]', (link) => link.href) || null
+        const favicon = rawFavicon ? new URL(rawFavicon, url).href : null
+
+        const imgLogo = await page.$eval('img[alt*="logo"], img[src*="logo"]', (img) => img.src) || null
+
+        const ogUrl = metaTags.find((tag) => tag.property === 'og:url')
+        const ogTitle = metaTags.find((tag) => tag.property === 'og:title')
+        const description = metaTags.find((tag) => tag.name === 'description')
+
+        const fullText = await page.evaluate(() => {
+            // eslint-disable-next-line no-undef
+            return document.body.innerText.trim()
+        })
+
+        await browser.close()
+
+        return {
+            url: ogUrl?.content || url,
+            name: ogTitle?.content || (await page.title()) || 'Unknown Title',
+            description: description?.content || '',
+            logo: imgLogo,
+            favicon,
+            content: await openAIService.summaryWeb(fullText)
         }
     } catch (error) {
         console.error(error.message)

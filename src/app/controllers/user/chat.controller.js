@@ -1,20 +1,22 @@
 import {db} from '@/configs'
 import * as conversationService from '@/app/services/conversation.service'
 import * as openAIService from '@/app/services/openAI.service'
-import { Message, TYPE_CONVERSATION} from '@/models'
-
+import {ConversationSummary, DEFAULT_FORM_ORDER, Message, STATUS_ORDER, TYPE_CONVERSATION} from '@/models'
 
 export async function create(req, res) {
     const { send_message } = req.body
     const conversation_id = req?.conversation?._id || null
-    let historyMessage = []
+    let historyMessage = ''
     if (conversation_id) {
-        historyMessage = await conversationService.handleGetMessageOfOpenAI(conversation_id)
+        const historyConversation = await ConversationSummary.findOne({conversation_id})
+        historyMessage = historyConversation?.content || ''
     }
     await db.transaction(async function (session) {
         let promptOrder = null
-        if (req.bot.config_bot?.is_order && conversation_id) {
-            promptOrder =  await openAIService.handleGetPromptOrder(send_message, conversation_id, session)
+        if (req.bot?.is_order === STATUS_ORDER.ACTIVE && conversation_id) {
+            const valueFormOrder = JSON.parse(req.bot.order_config.form_order)
+            const formOrder = DEFAULT_FORM_ORDER.filter(item => valueFormOrder.includes(item.value))
+            promptOrder =  await openAIService.handleGetPromptOrder(send_message, conversation_id, formOrder, session)
         }
 
         const user = {
@@ -22,7 +24,7 @@ export async function create(req, res) {
             user_message: send_message
         }
 
-        const messageSendUser = await openAIService.askOpenAI(send_message, req.bot._id, historyMessage, promptOrder)
+        const messageSendUser = await openAIService.askOpenAI(send_message, req.bot, historyMessage, promptOrder)
         const bot = {
             sender_id: 'web_bot',
             bot_messages: [

@@ -1,7 +1,6 @@
-import {Bot, FileKnowledge, STATUS_TRAIN} from '@/models'
+import { FileKnowledge, STATUS_TRAIN } from '@/models'
 import {FileUpload} from '@/utils/classes'
 import * as vectorKnowledgeService from '@/app/services/vector-knowledge.service'
-import BotConfig from '../../models/bot-config'
 
 export async function getListKnowledgeFiles ({q, page, per_page, field, sort_order}, bot) {
     q = q ? {$regex: q, $options: 'i'} : null
@@ -25,28 +24,6 @@ export async function getListKnowledgeFiles ({q, page, per_page, field, sort_ord
 
     const total = await FileKnowledge.countDocuments(filter)
     return {total, page, per_page, files}
-}
-
-export async function createBotWithFile(currentUser, infoFile, body, session) {
-    const { name, description, logo, logo_message, color } = body
-
-    await logo.save('bot/logos')
-    const bot = new Bot({
-        name,
-        logo,
-        favicon: logo,
-        description,
-        user_id: currentUser._id,
-    })
-    await bot.save({ session })
-
-    await logo_message.save('bot/logos')
-    const config = new BotConfig({logo_message, color, bot_id: bot._id, is_order: true})
-    await config.save({ session })
-
-    await createFile(infoFile, bot, session)
-
-    return bot
 }
 
 export async function createFile (infoFile, bot, session) {

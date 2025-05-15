@@ -4,7 +4,7 @@ import {normalizeError} from '@/utils/helpers'
 import {STATUS_TRAIN, WebKnowledge} from '@/models'
 import * as webKnowledgeService from '@/app/services/knowledge.service'
 import * as vectorKnowledgeService from '@/app/services/vector-knowledge.service'
-import { handleGetInfoPage } from '@/app/services/bot.service'
+import {handleGetInfoPageWithPuppeteer} from '@/app/services/bot.service'
 import _ from 'lodash'
 
 let lastRunTime = null
@@ -22,7 +22,7 @@ const scanKnowledgeWeb = CronJob.from({
                 })
 
                 if (!_.isEmpty(knowledgeWeb)) {
-                    const infoUrl = await handleGetInfoPage(knowledgeWeb.url)
+                    const infoUrl = await handleGetInfoPageWithPuppeteer(knowledgeWeb.url)
                     if (!_.isEmpty(infoUrl)) {
                         await db.transaction(async function (session) {
                             await webKnowledgeService.updateKnowledgeWeb({

@@ -1,6 +1,5 @@
 import { Router } from 'express'
 import * as botUserController from '@/app/controllers/user/bot.controller'
-import * as fileController from '@/app/controllers/user/bot/file.controller'
 import { asyncHandler } from '@/utils/helpers'
 import * as authUserMiddleware from '@/app/middleware/user/auth.middleware'
 import * as botUserMiddleware from '@/app/middleware/user/bot.middleware'
@@ -25,13 +24,6 @@ botRouter.post(
     asyncHandler(authUserMiddleware.checkValidToken),
     asyncHandler(validate(botUserRequest.createBot)),
     asyncHandler(botUserController.create)
-)
-
-botRouter.post(
-    '/create-with-file',
-    asyncHandler(authUserMiddleware.checkValidToken),
-    asyncHandler(validate(botUserRequest.createBotWithFile)),
-    asyncHandler(fileController.createBotWithFile)
 )
 
 botRouter.get(
