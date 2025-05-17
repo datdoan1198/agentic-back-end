@@ -38,7 +38,7 @@ const Bot = createModel(
             type: String,
             enum: Object.values(STATUS_ORDER),
             required: true,
-            default: STATUS_ORDER.ACTIVE,
+            default: STATUS_ORDER.DE_ACTIVE,
         },
         deleted: {
             type: Boolean,

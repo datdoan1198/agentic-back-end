@@ -12,6 +12,10 @@ const FileKnowledge = createModel(
             type: String,
             required: true,
         },
+        extension: {
+            type: String,
+            required: true,
+        },
         path: {
             type: String,
             required: true,

@@ -34,6 +34,7 @@ export async function createFile (infoFile, bot, session) {
         title: infoFile.title,
         content: infoFile.content,
         path: infoFile.file,
+        extension: infoFile.extension,
         bot_id: bot._id,
         status: STATUS_TRAIN.TRAINED
     })
