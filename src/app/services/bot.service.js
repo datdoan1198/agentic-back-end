@@ -292,11 +292,12 @@ export async function handleGetInfoPage(url) {
 
 export async function handleGetInfoPageWithPuppeteer(url) {
     try {
-        const browser = await puppeteer.launch({
-            executablePath: '/usr/bin/chromium-browser',
+        const option = {
+            // executablePath: '/usr/bin/chromium-browser',
             headless: true,
             args: ['--no-sandbox', '--disable-setuid-sandbox', '--disable-dev-shm-usage']
-        })
+        }
+        const browser = await puppeteer.launch(option)
         const page = await browser.newPage()
         await page.goto(url, { waitUntil: 'networkidle2' })
 
