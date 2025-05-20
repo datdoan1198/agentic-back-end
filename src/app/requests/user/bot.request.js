@@ -1,7 +1,6 @@
 import Joi from 'joi'
 import { AsyncValidate, FileUpload } from '@/utils/classes'
 import {STATUS_BOT, STATUS_ORDER, WebKnowledge} from '@/models'
-import {handleGetInfoPageWithPuppeteer} from '@/app/services/bot.service'
 const ExcelJS = require('exceljs')
 const path = require('path')
 
