@@ -7,6 +7,7 @@ import validate from '@/app/middleware/common/validate'
 import * as botUserRequest from '@/app/requests/user/bot.request'
 import conversationRouter from './bot/conversation.route'
 import facebookRouter from './bot/facebook.router'
+import dashboardRouter from './bot/dashboard.router'
 import linkRouter from './bot/link.router'
 import chatRouter from './bot/chat.router'
 import fileRouter from './bot/file.router'
@@ -65,6 +66,7 @@ botRouter.delete(
     asyncHandler(botUserController.deleteBot)
 )
 
+botRouter.use('/', dashboardRouter)
 botRouter.use('/', linkRouter)
 botRouter.use('/', facebookRouter)
 botRouter.use('/', conversationRouter)

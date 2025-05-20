@@ -209,7 +209,7 @@ export async function deleteLink(bot, link, session) {
 }
 
 async function handleCreateWebKnowledgeAndScanOneLink (bot, infoUrl, session) {
-    const knowledgeWeb = await webKnowledgeService.createKnowledgeWeb(
+    await webKnowledgeService.createKnowledgeWeb(
         {
             url: infoUrl.url,
             title: infoUrl.name,
@@ -218,15 +218,6 @@ async function handleCreateWebKnowledgeAndScanOneLink (bot, infoUrl, session) {
             content: infoUrl.content,
         },
         bot,
-        session,
-        STATUS_TRAIN.TRAINED
-    )
-
-    const textConvertVector = infoUrl.name + '\n' + infoUrl.description + '\n' + infoUrl.content
-    await vectorKnowledgeService.createVectorKnowledge(
-        textConvertVector,
-        bot._id,
-        knowledgeWeb._id,
         session
     )
 }
