@@ -31,6 +31,14 @@ export async function updateBot(req, res) {
     })
 }
 
+export async function updateActiveUrlsBotChat(req, res) {
+    await db.transaction(async function (session) {
+        req.bot.active_urls = JSON.parse(req.body.active_urls)
+        await req.bot.save({ session })
+        res.status(201).jsonify(req.bot, 'Update bot success')
+    })
+}
+
 export async function getDetailBot(req, res) {
     res.status(201).jsonify(await botService.getDetailBot(req.params.botId))
 }

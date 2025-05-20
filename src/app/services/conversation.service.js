@@ -57,14 +57,14 @@ export async function getListMessage ({q, page, per_page, field, sort_order}, co
 export async function createMessage(
     userInfo, botInfo, type, bot_id, session, conversation_id = null, bot_name = ''
 ) {
-    const conversationInfo = {
-        platform_user_id: userInfo.receiver_id,
-        bot_id,
-        type,
-    }
     let conversion
-
     if (_.isEmpty(conversation_id)) {
+        const conversationInfo = {
+            platform_user_id: userInfo.receiver_id,
+            bot_id,
+            type,
+        }
+
         conversion = new Conversation(conversationInfo)
         await conversion.save({ session })
         await handleCreateMessageBot({
@@ -75,11 +75,8 @@ export async function createMessage(
             ]
         }, conversion._id, session)
     } else {
-        conversion = await Conversation.findOneAndUpdate(
-            {_id : conversation_id},
-            {$setOnInsert: conversationInfo},
-            { new: true, session }
-        )
+        conversion = await Conversation.findOne({_id : conversation_id})
+        userInfo.receiver_id = conversion?.platform_user_id
     }
 
     await handleSaveMessage(userInfo, botInfo, conversion._id, session)

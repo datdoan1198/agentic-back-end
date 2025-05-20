@@ -43,6 +43,14 @@ botRouter.put(
 )
 
 botRouter.put(
+    '/:botId/active-urls',
+    asyncHandler(authUserMiddleware.checkValidToken),
+    asyncHandler(botUserMiddleware.checkBotExist),
+    asyncHandler(validate(botUserRequest.updateActiveUrlBotChat)),
+    asyncHandler(botUserController.updateActiveUrlsBotChat)
+)
+
+botRouter.put(
     '/:botId/change-status',
     asyncHandler(authUserMiddleware.checkValidToken),
     asyncHandler(botUserMiddleware.checkBotExist),
