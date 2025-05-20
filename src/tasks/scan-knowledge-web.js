@@ -13,12 +13,12 @@ const scanKnowledgeWeb = CronJob.from({
     cronTime: '* * * * * *',
     onTick: async function (onComplete) {
         const currentTime = new Date()
-        if (!lastRunTime || (currentTime - lastRunTime) >= 20000) {
+        if (!lastRunTime || (currentTime - lastRunTime) >= 40000) {
             lastRunTime = currentTime
 
             try {
                 const knowledgeWeb = await WebKnowledge.findOne({
-                    status: STATUS_TRAIN.UNTRAINED
+                    status: STATUS_TRAIN.UNTRAINED,
                 })
 
                 if (!_.isEmpty(knowledgeWeb)) {
@@ -33,7 +33,7 @@ const scanKnowledgeWeb = CronJob.from({
                                 status: STATUS_TRAIN.TRAINED,
                             }, knowledgeWeb, session)
 
-                            const textConvertVector = infoUrl.name + '.' + infoUrl.description + '.' + knowledgeWeb.url
+                            const textConvertVector = infoUrl.name + '\n' + infoUrl.description + '\n' + infoUrl.content
                             await vectorKnowledgeService.createVectorKnowledge(
                                 textConvertVector, knowledgeWeb.bot_id, knowledgeWeb._id, session
                             )

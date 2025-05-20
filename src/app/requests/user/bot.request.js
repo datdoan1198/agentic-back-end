@@ -44,12 +44,11 @@ export const createBot = Joi.object({
         .allow('', null)
         .custom(
             (value, helpers) =>
-                new AsyncValidate(value, async function (req) {
-                    req.infoUrl = await handleGetInfoPageWithPuppeteer(req.body.url)
-                    if (req.infoUrl) {
-                        return value
+                new AsyncValidate(value, function (req) {
+                    req.infoUrl = {
+                        url: value
                     }
-                    return helpers.error('any.invalid')
+                    return value ? value : helpers.error('any.invalid')
                 })
         )
         .label('Đường dẫn'),
@@ -165,7 +164,9 @@ export const createLink = Joi.object({
                     if (!value.startsWith('https://')) return helpers.error('any.invalid')
                     const link = await WebKnowledge.findOne({ url: value, bot_id: req.bot._id })
                     if (!link) {
-                        req.infoUrl = await handleGetInfoPageWithPuppeteer(value)
+                        req.infoUrl = {
+                            url: value
+                        }
                         return value
                     }
                     return helpers.error('any.exists')

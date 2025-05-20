@@ -24,7 +24,6 @@ chatRouter.post(
     asyncHandler(chatController.create)
 )
 
-
 chatRouter.get(
     '/:botId/conversation/:conversationId/messages',
     asyncHandler(botUserMiddleware.checkBotExist),
