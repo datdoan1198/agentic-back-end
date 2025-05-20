@@ -12,7 +12,7 @@ const chatRouter = Router()
 
 chatRouter.get(
     '/:botId/chat',
-    asyncHandler(botUserMiddleware.checkBotExist),
+    asyncHandler(botUserMiddleware.checkBotActiveExist),
     asyncHandler(botUserController.getDetailBot)
 )
 

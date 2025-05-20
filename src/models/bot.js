@@ -40,6 +40,10 @@ const Bot = createModel(
             required: true,
             default: STATUS_ORDER.DE_ACTIVE,
         },
+        active_urls: {
+            type: [String],
+            default: [process.env.APP_URL_CLIENT],
+        },
         deleted: {
             type: Boolean,
             required: true,

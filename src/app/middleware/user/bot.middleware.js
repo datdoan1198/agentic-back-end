@@ -1,5 +1,5 @@
 import { abort } from '@/utils/helpers'
-import { Bot, Conversation, WebKnowledge } from '@/models'
+import {Bot, Conversation, STATUS_BOT, WebKnowledge} from '@/models'
 import {handleGetInfoPageWithPuppeteer} from '@/app/services/bot.service'
 import { isValidObjectId } from 'mongoose'
 
@@ -33,6 +33,25 @@ export async function checkBotExist(req, res, next) {
         }).populate('fb')
             .populate('business')
             .populate('order_config')
+
+        if (bot) {
+            req.bot = bot
+            next()
+            return
+        }
+    }
+
+    abort(404, 'Bot không tồn tại.')
+}
+
+export async function checkBotActiveExist(req, res, next) {
+    if (isValidObjectId(req.params.botId)) {
+        const bot = await Bot.findOne({
+            _id: req.params.botId,
+            ...(req.currentUser && {user_id: req.currentUser._id}),
+            status: STATUS_BOT.ACTIVE,
+            deleted: false,
+        })
 
         if (bot) {
             req.bot = bot

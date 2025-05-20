@@ -2,6 +2,7 @@ import {db} from '@/configs'
 import * as conversationService from '@/app/services/conversation.service'
 import * as openAIService from '@/app/services/openAI.service'
 import {ConversationSummary, DEFAULT_FORM_ORDER, Message, STATUS_ORDER, TYPE_CONVERSATION} from '@/models'
+const { customAlphabet } = require('nanoid')
 
 export async function create(req, res) {
     const { send_message } = req.body
@@ -18,9 +19,9 @@ export async function create(req, res) {
             const formOrder = DEFAULT_FORM_ORDER.filter(item => valueFormOrder.includes(item.value))
             promptOrder =  await openAIService.handleGetPromptOrder(send_message, conversation_id, formOrder, session)
         }
-
+        const nanoid = await customAlphabet('0123456789', 6)
         const user = {
-            receiver_id: 'web_client',
+            receiver_id: nanoid(),
             user_message: send_message
         }
 

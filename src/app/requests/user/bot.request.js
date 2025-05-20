@@ -142,6 +142,10 @@ export const updateBot = Joi.object({
         }),
 })
 
+export const updateActiveUrlBotChat = Joi.object({
+    active_urls: Joi.string().required().label('Danh sách đường dẫn'),
+})
+
 export const selectPageFB = Joi.object({
     page_id: Joi.string().required().label('ID fanpage'),
 })
