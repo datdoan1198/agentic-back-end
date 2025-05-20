@@ -8,6 +8,7 @@ import * as cheerio from 'cheerio'
 import {createFile} from '@/app/services/file-knowledge.service'
 import BusinessConfig from '../../models/business-config'
 import * as openAIService from '@/app/services/openAI.service'
+import {APP_ENV, NODE_ENV} from '@/configs'
 const puppeteer = require('puppeteer')
 
 export async function filter(currentUser) {
@@ -284,7 +285,7 @@ export async function handleGetInfoPage(url) {
 export async function handleGetInfoPageWithPuppeteer(url) {
     try {
         const option = {
-            // executablePath: '/usr/bin/chromium-browser',
+            ...NODE_ENV === APP_ENV.PRODUCTION && {executablePath: '/usr/bin/chromium-browser'},
             headless: true,
             args: ['--no-sandbox', '--disable-setuid-sandbox', '--disable-dev-shm-usage']
         }
