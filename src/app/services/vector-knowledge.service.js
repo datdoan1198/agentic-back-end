@@ -33,6 +33,8 @@ export async function updateVectorKnowledge(text, source_id, session) {
 
         return knowledgeVector
     }
+
+    return false
 }
 
 export async function deleteVectorKnowledgeWithSourceId(source_id, session) {

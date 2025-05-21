@@ -177,6 +177,13 @@ export async function createLink(currentBot, { scan_type }, infoUrl, session) {
 
 export async function rescanLink(currentBot, link, session) {
     const infoUrl = await handleGetInfoPageWithPuppeteer(link.url)
+    const textConvertVector = infoUrl.name + '\n' + infoUrl.description + '\n Danh sách sản phẩm: \n' + infoUrl.content
+    const isKnowledge = await vectorKnowledgeService.createVectorKnowledge(
+        textConvertVector,
+        currentBot._id,
+        link._id,
+        session
+    )
 
     const linkUpdate = await webKnowledgeService.updateKnowledgeWeb(
         {
@@ -184,17 +191,9 @@ export async function rescanLink(currentBot, link, session) {
             description: infoUrl.description,
             url_logo: infoUrl.logo,
             content: infoUrl.content,
-            status: STATUS_TRAIN.TRAINED,
+            status: isKnowledge ? STATUS_TRAIN.TRAINED : STATUS_TRAIN.FAILED,
         },
         link,
-        session
-    )
-
-    const textConvertVector = infoUrl.name + '\n' + infoUrl.description + '\n' + infoUrl.content
-    await vectorKnowledgeService.createVectorKnowledge(
-        textConvertVector,
-        currentBot._id,
-        link._id,
         session
     )
 
