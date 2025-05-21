@@ -64,6 +64,7 @@ export const GENDER = {
 export const STATUS_TRAIN = {
     TRAINED: 'TRAINED',
     UNTRAINED: 'UNTRAINED',
+    FAILED: 'FAILED',
 }
 
 export const SCAN_TYPE = {

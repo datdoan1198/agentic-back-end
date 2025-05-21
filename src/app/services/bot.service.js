@@ -307,10 +307,18 @@ export async function handleGetInfoPageWithPuppeteer(url) {
             return tags
         })
 
-        const rawFavicon = await page.$eval('link[rel~="icon"]', (link) => link.href) || null
-        const favicon = rawFavicon ? new URL(rawFavicon, url).href : null
+        let favicon = null
+        const faviconElem = await page.$('link[rel~="icon"]')
+        if (faviconElem) {
+            const rawFavicon = await page.evaluate(link => link.href, faviconElem)
+            favicon = new URL(rawFavicon, url).href
+        }
 
-        const imgLogo = await page.$eval('img[alt*="logo"], img[src*="logo"]', (img) => img.src) || null
+        let imgLogo = null
+        const logoElem = await page.$('img[alt*="logo"], img[src*="logo"]')
+        if (logoElem) {
+            imgLogo = await page.evaluate(img => img.src, logoElem)
+        }
 
         const ogUrl = metaTags.find((tag) => tag.property === 'og:url')
         const ogTitle = metaTags.find((tag) => tag.property === 'og:title')
@@ -320,6 +328,11 @@ export async function handleGetInfoPageWithPuppeteer(url) {
             // eslint-disable-next-line no-undef
             return document.body.innerText.trim()
         })
+
+        // const bodyHtml = await page.evaluate(() => {
+        //     // eslint-disable-next-line no-undef
+        //     return `<body>${document.body.innerHTML}</body>`
+        // })
 
         await browser.close()
 

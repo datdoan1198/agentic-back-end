@@ -17,6 +17,7 @@ export async function convertVector(text) {
 
         return response.data[0].embedding
     } catch (error) {
+        console.log(error.message)
         return []
     }
 }

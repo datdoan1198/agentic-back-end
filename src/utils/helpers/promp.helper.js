@@ -52,7 +52,7 @@ export function promptSummaryProductWeb(content) {
         
         # Yêu cầu cụ thể:
         - Gom nhóm sản phẩm theo danh mục hoặc công dụng.
-        - Với mỗi nhóm sản phẩm, liệt kê ngắn gọn các loại sản phẩm tiêu biểu, cùng giá bán và ưu đãi nếu có.
+        - Với mỗi nhóm sản phẩm liệt kê ngắn gọn, đầy đủ các sản phẩm, cùng giá bán và ưu đãi nếu có.
         - Mục tiêu của đoạn tổng hợp: được dùng như tri thức để phục vụ cho các chức năng hỏi đáp, tìm kiếm, đề xuất sản phẩm, vì vậy cần đảm bảo độ chính xác, đầy đủ thông tin cốt lõi, không dư thừa.
     `
 }

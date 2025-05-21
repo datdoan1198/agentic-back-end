@@ -25,18 +25,18 @@ const scanKnowledgeWeb = CronJob.from({
                     const infoUrl = await handleGetInfoPageWithPuppeteer(knowledgeWeb.url)
                     if (!_.isEmpty(infoUrl)) {
                         await db.transaction(async function (session) {
+                            const textConvertVector = infoUrl.name + '\n' + infoUrl.description + '\n' + infoUrl.content
+                            const isKnowledge = await vectorKnowledgeService.createVectorKnowledge(
+                                textConvertVector, knowledgeWeb.bot_id, knowledgeWeb._id, session
+                            )
+
                             await webKnowledgeService.updateKnowledgeWeb({
                                 title: infoUrl.name,
                                 description: infoUrl.description,
                                 url_logo: infoUrl.logo,
                                 content: infoUrl.content,
-                                status: STATUS_TRAIN.TRAINED,
+                                status: isKnowledge ? STATUS_TRAIN.TRAINED : STATUS_TRAIN.FAILED,
                             }, knowledgeWeb, session)
-
-                            const textConvertVector = infoUrl.name + '\n' + infoUrl.description + '\n' + infoUrl.content
-                            await vectorKnowledgeService.createVectorKnowledge(
-                                textConvertVector, knowledgeWeb.bot_id, knowledgeWeb._id, session
-                            )
                         })
                     }
                 }
@@ -47,7 +47,6 @@ const scanKnowledgeWeb = CronJob.from({
                 })
             }
         }
-
 
         if (onComplete) await onComplete()
     },
