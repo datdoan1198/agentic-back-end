@@ -10,4 +10,17 @@ dashboardRouter.get(
     asyncHandler(botUserMiddleware.checkBotExist),
     asyncHandler(dashboardUserController.getGeneralStatistics)
 )
+
+dashboardRouter.get(
+    '/:botId/dashboard/total-message-by-day',
+    asyncHandler(botUserMiddleware.checkBotExist),
+    asyncHandler(dashboardUserController.getTotalMessageByDay)
+)
+
+dashboardRouter.get(
+    '/:botId/dashboard/latest-message',
+    asyncHandler(botUserMiddleware.checkBotExist),
+    asyncHandler(dashboardUserController.getLatestMessage)
+)
+
 export default dashboardRouter

@@ -24,10 +24,10 @@ const Message = createModel(
         }
     },{
         virtuals: {
-            messages: {
+            conversation: {
                 options: {
-                    ref: 'Bot',
-                    localField: 'bot_id',
+                    ref: 'Conversation',
+                    localField: 'conversation_id',
                     foreignField: '_id',
                     justOne: true,
                 },
