@@ -25,7 +25,7 @@ export async function create(req, res) {
             user_message: send_message
         }
 
-        const messageSendUser = await openAIService.askOpenAI(send_message, req.bot, historyMessage, promptOrder)
+        const messageSendUser = await openAIService.askOpenAI(send_message, req.bot, historyMessage, promptOrder, TYPE_CONVERSATION.WEB)
         const bot = {
             sender_id: 'web_bot',
             bot_messages: [

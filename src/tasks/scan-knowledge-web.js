@@ -25,7 +25,7 @@ const scanKnowledgeWeb = CronJob.from({
                     const infoUrl = await handleGetInfoPageWithPuppeteer(knowledgeWeb.url)
                     if (!_.isEmpty(infoUrl)) {
                         await db.transaction(async function (session) {
-                            const textConvertVector = infoUrl.name + '\n' + infoUrl.description + '\n' + infoUrl.content
+                            const textConvertVector = infoUrl.name + '\n' + infoUrl.description + '\n Danh sách sản phẩm: \n' + infoUrl.content
                             const isKnowledge = await vectorKnowledgeService.createVectorKnowledge(
                                 textConvertVector, knowledgeWeb.bot_id, knowledgeWeb._id, session
                             )

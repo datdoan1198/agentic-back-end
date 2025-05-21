@@ -1,5 +1,5 @@
 import OpenAI from 'openai'
-import {KnowledgeVector, STATUS_CONVERSATION_ORDER} from '@/models'
+import {KnowledgeVector, STATUS_CONVERSATION_ORDER, TYPE_CONVERSATION} from '@/models'
 import {getPromptAskOpenAI, promptSummaryConversation, promptSummaryProductWeb} from '@/utils/helpers/promp.helper'
 import * as ConversationOrderService from '@/app/services/conversation-order.service'
 import _ from 'lodash'
@@ -22,9 +22,9 @@ export async function convertVector(text) {
     }
 }
 
-export async function askOpenAI(question, bot, historyMessage = '', promptOrder = null) {
+export async function askOpenAI(question, bot, historyMessage = '', promptOrder = null, type = TYPE_CONVERSATION.FB) {
     try {
-        const prompt = await handleGetPrompt(question, bot, promptOrder, historyMessage)
+        const prompt = await handleGetPrompt(question, bot, promptOrder, historyMessage, type)
 
         const messages = [
             {
@@ -37,7 +37,7 @@ export async function askOpenAI(question, bot, historyMessage = '', promptOrder 
             model: 'gpt-4o',
             messages,
             temperature: 0.4,
-            max_tokens: 500,
+            max_tokens: 2000,
         })
 
         return completion.choices[0].message.content.trim()
@@ -99,7 +99,7 @@ export async function summaryWeb(content) {
             model: 'gpt-4o',
             messages,
             temperature: 0.4,
-            max_tokens: 500,
+            max_tokens: 16384,
         })
 
         return completion.choices[0].message.content.trim()
@@ -157,7 +157,7 @@ export async function checkOrderAvailable(prompt, send_message) {
     }
 }
 
-export async function handleGetPrompt (question, bot, promptOrder, historyMessage) {
+export async function handleGetPrompt (question, bot, promptOrder, historyMessage, type) {
     const queryEmbedding = await convertVector(question)
     let knowledge = ''
 
@@ -176,7 +176,7 @@ export async function handleGetPrompt (question, bot, promptOrder, historyMessag
         knowledge += topTexts.join('\n---\n')
     }
 
-    return getPromptAskOpenAI(bot, bot.business, knowledge, question, promptOrder, historyMessage)
+    return getPromptAskOpenAI(bot, bot.business, knowledge, question, promptOrder, historyMessage, type)
 }
 
 export function getPromptOrder(formOrder, orderInfo) {
