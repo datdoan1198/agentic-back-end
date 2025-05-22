@@ -5,11 +5,10 @@ import * as conversationService from '@/app/services/conversation.service'
 import {db} from '@/configs'
 import {
     Bot,
-    BotConfig,
     Conversation,
-    ConversationSummary,
+    ConversationSummary, DEFAULT_FORM_ORDER,
     FacebookService,
-    STATUS_BOT,
+    STATUS_BOT, STATUS_ORDER,
     TYPE_CONVERSATION
 } from '@/models'
 
@@ -33,7 +32,7 @@ export async function updateBot(req, res) {
 
 export async function updateActiveUrlsBotChat(req, res) {
     await db.transaction(async function (session) {
-        req.bot.active_urls = JSON.parse(req.body.active_urls)
+        req.bot.active_urls = req.body.active_urls
         await req.bot.save({ session })
         res.status(201).jsonify(req.bot, 'Update bot success')
     })
@@ -148,6 +147,7 @@ export async function receiveMessageFb(req, res) {
                     const userMessage = event.message.text
 
                     if (parseInt(senderId) !== fbConfig.page_id) {
+                        const bot = await Bot.findOne({_id: fbConfig.bot_id}).populate('business')
                         const conversation = await Conversation.findOne({
                             platform_user_id: String(senderId),
                             bot_id: fbConfig.bot_id
@@ -156,10 +156,11 @@ export async function receiveMessageFb(req, res) {
                         let historyMessage = ''
                         let promptOrder = null
                         if (conversation) {
-                            const configBot = await BotConfig.findOne({bot_id: fbConfig.bot_id})
-                            if (configBot?.is_order && conversation._id) {
+                            if (bot?.is_order === STATUS_ORDER.ACTIVE && conversation._id) {
                                 await db.transaction(async function (session) {
-                                    promptOrder =  await openAIService.handleGetPromptOrder(userMessage, conversation._id, session)
+                                    const valueFormOrder = JSON.parse(bot.order_config.form_order)
+                                    const formOrder = DEFAULT_FORM_ORDER.filter(item => valueFormOrder.includes(item.value))
+                                    promptOrder =  await openAIService.handleGetPromptOrder(userMessage, conversation._id, formOrder, session)
                                 })
                             }
 
@@ -167,7 +168,6 @@ export async function receiveMessageFb(req, res) {
                             historyMessage = historyConversation?.content || ''
                         }
 
-                        const bot = await Bot.findOne({_id: fbConfig.bot_id}).populate('business')
                         const messageSend = await openAIService.askOpenAI(userMessage, bot, historyMessage, promptOrder)
 
                         await fbService.sendMessage(fbConfig.page_access_token, senderId, messageSend)

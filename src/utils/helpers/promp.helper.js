@@ -28,7 +28,7 @@ export function getPromptAskOpenAI(bot, business, knowledge, userQuestion, order
           + Nếu không có sản phẩm nào phù hợp, hãy lịch sự báo hết hàng, hẹn lần sau
     
         # Yêu cầu khi trả lời:
-        - Giữ văn phong thân thiện, tự nhiên, gần gũi (xưng là "mình", gọi người dùng là "bạn", kết thúc bằng emoji nhẹ nhàng khi phù hợp 😊).
+        - Giữ văn phong thân thiện, tự nhiên, gần gũi (xưng là "mình", gọi người dùng là "bạn").
         - Chỉ trả lời dựa trên thông tin đã cung cấp phía trên. Nếu không có thông tin, hãy lịch sự nói rằng bạn chưa có dữ liệu về điều đó.
         ${type === TYPE_CONVERSATION.WEB && '- trả về dạng html, danh sách sản phẩm dạng bảng html có chia các ô rõ ràng, trong bảng chỉ hiện tên sản phẩm giá bán' }
     `
@@ -36,7 +36,7 @@ export function getPromptAskOpenAI(bot, business, knowledge, userQuestion, order
 
 function handleGetPromptOrder(order = null) {
     let text = `
-        - Nếu khách hàng có nhu cầu đặt hàng, hãy lịch sự nói khách hàng liên hệ vào địa chỉ của doanh nghiệp 😊.
+        - Nếu khách hàng có nhu cầu đặt hàng, hãy lịch sự nói khách hàng liên hệ vào địa chỉ của doanh nghiệp.
     `
     if (order) {text = order}
 
