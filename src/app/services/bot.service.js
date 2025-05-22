@@ -57,9 +57,12 @@ export async function createBot(currentUser, infoUrl, infoFile, body, session) {
         name_business, logo,
     } = body
 
-    await logo_message.save('bot/logos')
+    let pathLogoMessage = ''
+    if (logo_message && logo_message instanceof FileUpload) {
+        pathLogoMessage = await logo_message.save('bot/logos')
+    }
     const bot = new Bot({
-        name, description, logo_message, color,
+        name, description, logo_message: pathLogoMessage, color,
         user_id: currentUser._id,
     })
     await bot.save({ session })

@@ -42,7 +42,7 @@ const Bot = createModel(
         },
         active_urls: {
             type: [String],
-            default: [process.env.APP_URL_CLIENT],
+            default: [],
         },
         deleted: {
             type: Boolean,

@@ -18,12 +18,12 @@ export async function getGeneralStatistics (query, bot) {
     const averageNumberMessages = totalConversation > 0 ? totalMessages / totalConversation : 0
 
     return {
-        number_user_access: totalConversation,
-        total_conversation: totalConversation,
-        average_number_messages: averageNumberMessages,
-        total_messages: totalMessages,
-        total_link: totalLink,
-        total_file: totalFile,
+        number_user_access: Math.round(totalConversation),
+        total_conversation: Math.round(totalConversation),
+        average_number_messages: Math.round(averageNumberMessages),
+        total_messages: Math.round(totalMessages),
+        total_link: Math.round(totalLink),
+        total_file: Math.round(totalFile),
     }
 }
 

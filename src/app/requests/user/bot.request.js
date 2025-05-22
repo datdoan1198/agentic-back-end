@@ -9,20 +9,24 @@ const MAX_UPLOAD_SIZE = parseInt(process.env.MAX_UPLOAD_SIZE, 10) || 5
 export const createBot = Joi.object({
     name: Joi.string().required().label('Tên bot'),
     description: Joi.string().required().label('Mô tả công việc của bot'),
-    logo_message: Joi.object({
-        originalname: Joi.string().trim().required().label('Tên logo nút trò chuyện'),
-        mimetype: Joi.valid('image/jpeg', 'image/png', 'image/svg+xml', 'image/webp')
-            .required()
-            .label('Định dạng logo nút trò chuyện'),
-        buffer: Joi.binary()
-            .max(MAX_UPLOAD_SIZE * 1024 ** 2)
-            .required()
-            .label('logo nút trò chuyện'),
-    })
-        .unknown(true)
-        .instance(FileUpload)
-        .required()
-        .label('Logo nút trò chuyện'),
+    logo_message: Joi.alternatives()
+        .try(
+            Joi.string(),
+            Joi.object({
+                originalname: Joi.string().trim().required().label('Tên logo nút trò chuyện'),
+                mimetype: Joi.valid('image/jpeg', 'image/png', 'image/svg+xml', 'image/webp')
+                    .required()
+                    .label('Định dạng logo nút trò chuyện'),
+                buffer: Joi.binary()
+                    .max(MAX_UPLOAD_SIZE * 1024 ** 2)
+                    .required()
+                    .label('logo nút trò chuyện'),
+            })
+                .unknown(true)
+                .instance(FileUpload)
+        )
+        .allow('', {}, 'null')
+        .label('Logo nút nói chuyện'),
     color: Joi.string().required().label('Màu sắc'),
     name_business: Joi.string().required().label('Tên doanh nghiệp'),
     logo: Joi.object({
@@ -141,7 +145,20 @@ export const updateBot = Joi.object({
 })
 
 export const updateActiveUrlBotChat = Joi.object({
-    active_urls: Joi.string().required().label('Danh sách đường dẫn'),
+    active_urls: Joi.array()
+        .items(
+            Joi.string()
+                .uri()
+                .label('Đường dẫn hợp lệ')
+                .messages({
+                    'string.uri': '{{#label}} phải là một liên kết hợp lệ (vd: https://...)',
+                    'string.base': '{{#label}} phải là chuỗi',
+                })
+        )
+        .label('Danh sách đường dẫn')
+        .messages({
+            'array.base': '{{#label}} phải là một mảng',
+        })
 })
 
 export const selectPageFB = Joi.object({
