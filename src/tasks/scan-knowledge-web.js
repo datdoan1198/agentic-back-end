@@ -1,7 +1,7 @@
 import {CronJob} from 'cron'
 import {db, logger} from '@/configs'
 import {normalizeError} from '@/utils/helpers'
-import {STATUS_TRAIN, WebKnowledge} from '@/models'
+import {Bot, SCAN_TYPE, STATUS_TRAIN, WebKnowledge} from '@/models'
 import * as webKnowledgeService from '@/app/services/knowledge.service'
 import * as vectorKnowledgeService from '@/app/services/vector-knowledge.service'
 import {handleGetInfoPageWithPuppeteer} from '@/app/services/bot.service'
@@ -18,7 +18,7 @@ const scanKnowledgeWeb = CronJob.from({
 
             try {
                 const knowledgeWeb = await WebKnowledge.findOne({
-                    status: STATUS_TRAIN.UNTRAINED,
+                    status: STATUS_TRAIN.PENDING,
                 })
 
                 if (!_.isEmpty(knowledgeWeb)) {
@@ -37,6 +37,28 @@ const scanKnowledgeWeb = CronJob.from({
                                 content: infoUrl.content,
                                 status: isKnowledge ? STATUS_TRAIN.TRAINED : STATUS_TRAIN.FAILED,
                             }, knowledgeWeb, session)
+
+                            if (knowledgeWeb.scan_type === SCAN_TYPE.ALL) {
+                                const links = infoUrl.links
+                                const bot = await Bot.findOne({_id: knowledgeWeb.bot_id})
+                                let index = 1
+                                if (links && links.length > 0) {
+                                    for (const link of links) {
+                                        const cleanedParam = link.split('?')[0]
+                                        const convertLink = cleanedParam.endsWith('/') ? cleanedParam.slice(0, -1) : cleanedParam
+                                        const convertUrl = infoUrl.url.endsWith('/') ? infoUrl.url.slice(0, -1) : infoUrl.url
+                                        if (convertUrl !== convertLink) {
+                                            await webKnowledgeService.createKnowledgeWeb(
+                                                { url: link },
+                                                bot,
+                                                session,
+                                                index < 10 ? STATUS_TRAIN.PENDING : STATUS_TRAIN.UNTRAINED
+                                            )
+                                            index ++
+                                        }
+                                    }
+                                }
+                            }
                         })
                     }
                 }

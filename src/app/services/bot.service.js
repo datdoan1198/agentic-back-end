@@ -3,8 +3,6 @@ import _ from 'lodash'
 import * as vectorKnowledgeService from '@/app/services/vector-knowledge.service'
 import * as webKnowledgeService from '@/app/services/knowledge.service'
 import {FileUpload} from '@/utils/classes'
-import axios from 'axios'
-import * as cheerio from 'cheerio'
 import {createFile} from '@/app/services/file-knowledge.service'
 import BusinessConfig from '../../models/business-config'
 import * as openAIService from '@/app/services/openAI.service'
@@ -17,13 +15,13 @@ export async function filter(currentUser) {
         deleted: false,
     }
 
-    const bots = await Bot.find(filter).sort({ created_at: 'desc' }).lean()
+    const bots = await Bot.find(filter).populate('business').sort({ created_at: 'desc' }).lean()
     const botChats = bots.map((bot) => {
         if (bot.logo) {
             bot.logo = FileUpload.in(bot.logo)
         }
-        if (bot.favicon) {
-            bot.favicon = FileUpload.in(bot.favicon)
+        if (bot.business) {
+            bot.business.logo = FileUpload.in(bot.business.logo)
         }
         return bot
     })
@@ -75,7 +73,9 @@ export async function createBot(currentUser, infoUrl, infoFile, body, session) {
     })
     await businessConfig.save({ session })
 
-    infoUrl && infoUrl.url && await handleCreateWebKnowledgeAndScanOneLink(bot, infoUrl, session)
+    infoUrl && infoUrl.url && await handleCreateWebKnowledgeAndScanOneLink(
+        bot, infoUrl, session, STATUS_TRAIN.PENDING, SCAN_TYPE.ALL
+    )
     infoFile && await createFile(infoFile, bot, session)
     return bot
 }
@@ -168,7 +168,7 @@ export async function getLinks(bot, query) {
 export async function createLink(currentBot, { scan_type }, infoUrl, session) {
     switch (scan_type) {
         case SCAN_TYPE.ONE:
-            await handleCreateWebKnowledgeAndScanOneLink(currentBot, infoUrl, session)
+            await handleCreateWebKnowledgeAndScanOneLink(currentBot, infoUrl, session, STATUS_TRAIN.PENDING)
             break
         case SCAN_TYPE.ALL:
             await handleScanAllLinks(infoUrl, currentBot, session)
@@ -211,7 +211,9 @@ export async function deleteLink(bot, link, session) {
     await vectorKnowledgeService.deleteVectorKnowledgeWithSourceId(link._id, session)
 }
 
-async function handleCreateWebKnowledgeAndScanOneLink (bot, infoUrl, session) {
+async function handleCreateWebKnowledgeAndScanOneLink (
+    bot, infoUrl, session, status = STATUS_TRAIN.UNTRAINED, scan_type = SCAN_TYPE.ONE
+) {
     await webKnowledgeService.createKnowledgeWeb(
         {
             url: infoUrl.url,
@@ -221,12 +223,14 @@ async function handleCreateWebKnowledgeAndScanOneLink (bot, infoUrl, session) {
             content: infoUrl.content,
         },
         bot,
-        session
+        session,
+        status,
+        scan_type
     )
 }
 
 async function handleScanAllLinks (infoUrl, bot, session) {
-    const links = await handleGetAllUrlInPage(infoUrl.url)
+    const links = infoUrl.links
 
     if (links && links.length > 0) {
         for (const link of links) {
@@ -240,47 +244,6 @@ async function handleScanAllLinks (infoUrl, bot, session) {
                 await webKnowledgeService.createKnowledgeWeb({ url: link }, bot, session)
             }
         }
-    }
-}
-
-export async function handleGetInfoPage(url) {
-    try {
-        const response = await axios.get(url)
-        const $ = cheerio.load(response.data)
-
-        const metaTags = []
-        $('meta').each((_, elem) => {
-            metaTags.push({
-                name: $(elem).attr('name') || null,
-                property: $(elem).attr('property') || null,
-                content: $(elem).attr('content') || null,
-            })
-        })
-
-        const rawFavicon = $('link[rel~="icon"]').attr('href') || null
-        const favicon = rawFavicon ? new URL(rawFavicon, url).href : null
-
-        const imgLogo = $('img').filter((_, img) => {
-            const alt = $(img).attr('alt')?.toLowerCase() || ''
-            const src = $(img).attr('src')?.toLowerCase() || ''
-            return alt.includes('logo') || src.includes('logo')
-        }).first().attr('src') || null
-
-        const ogUrl = metaTags.find((tag) => tag.property === 'og:url')
-        const ogTitle = metaTags.find((tag) => tag.property === 'og:title')
-        const description = metaTags.find((tag) => tag.name === 'description')
-
-        return {
-            url: ogUrl?.content || url,
-            name: ogTitle?.content || $('title').text() || 'Unknown Title',
-            description: description?.content || '',
-            logo: imgLogo,
-            favicon,
-            content: `<body>${$('body').html()}</body>`
-        }
-    } catch (error) {
-        console.error(error.message)
-        return null
     }
 }
 
@@ -336,6 +299,20 @@ export async function handleGetInfoPageWithPuppeteer(url) {
         //     return `<body>${document.body.innerHTML}</body>`
         // })
 
+        const links = await page.evaluate(() => {
+            // eslint-disable-next-line no-undef
+            const anchorElements = Array.from(document.querySelectorAll('a[href]'))
+            const urls = anchorElements
+                .map(a => a.href.trim())
+                .filter(href =>
+                    href &&
+                    href !== '#' &&
+                    !href.startsWith('javascript:') &&
+                    (href.startsWith('http://') || href.startsWith('https://'))
+                )
+            return Array.from(new Set(urls))
+        })
+
         await browser.close()
 
         return {
@@ -344,37 +321,11 @@ export async function handleGetInfoPageWithPuppeteer(url) {
             description: description?.content || '',
             logo: imgLogo,
             favicon,
-            content: await openAIService.summaryWeb(fullText)
+            content: await openAIService.summaryWeb(fullText),
+            links: links
         }
     } catch (error) {
         console.error(error.message)
         return null
-    }
-}
-
-export async function handleGetAllUrlInPage(url) {
-    try {
-        const response = await axios.get(url)
-        const $ = cheerio.load(response.data)
-
-        const origin = new URL(url).origin
-
-        const links = $('a')
-            .map((_, a) => $(a).attr('href'))
-            .get()
-            .filter((href) => href && !href.startsWith('tel:') && !href.startsWith('mailto:'))
-            .map((href) => {
-                try {
-                    return new URL(href, origin).href
-                } catch (e) {
-                    return null
-                }
-            })
-            .filter((href) => href && href.startsWith(origin))
-
-        return Array.from(new Set(links))
-    } catch (error) {
-        console.error('Error fetching page:', error.message)
-        return []
     }
 }
