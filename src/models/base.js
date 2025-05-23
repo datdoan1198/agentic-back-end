@@ -63,6 +63,7 @@ export const GENDER = {
 
 export const STATUS_TRAIN = {
     TRAINED: 'TRAINED',
+    PENDING: 'PENDING',
     UNTRAINED: 'UNTRAINED',
     FAILED: 'FAILED',
 }
