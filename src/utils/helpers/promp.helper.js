@@ -3,7 +3,7 @@ import {TYPE_CONVERSATION} from '@/models'
 export function getPromptAskOpenAI(bot, business, knowledge, userQuestion, order = null, historyMessage = '', type) {
     return `
         # Vai trò:
-        - Bạn là ${bot.name} - ${bot.description}
+        - Bạn là ${bot.name} - ${bot?.description_job?.description}
         hãy dự vào câu hỏi của khách hàng và kết hợp với lịch sử cuộc hội thoại để phân tích ý định của khách hàng và định tuyến đến các luồng xử lý phù hợp để lấy thông tin và hỗ trợ khách hàng 
         
         # Lịch sử cuộc hội thoại: ${historyMessage}

@@ -100,6 +100,14 @@ const Bot = createModel(
                     justOne: true,
                 },
             },
+            description_job: {
+                options: {
+                    ref: 'DescriptionJob',
+                    localField: 'description',
+                    foreignField: 'code',
+                    justOne: true,
+                },
+            },
         },
     }
 )
