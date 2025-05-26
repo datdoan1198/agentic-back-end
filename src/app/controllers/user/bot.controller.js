@@ -147,7 +147,9 @@ export async function receiveMessageFb(req, res) {
                     const userMessage = event.message.text
 
                     if (parseInt(senderId) !== fbConfig.page_id) {
-                        const bot = await Bot.findOne({_id: fbConfig.bot_id}).populate('business')
+                        const bot = await Bot.findOne({_id: fbConfig.bot_id})
+                            .populate('business')
+                            .populate('description_job')
                         const conversation = await Conversation.findOne({
                             platform_user_id: String(senderId),
                             bot_id: fbConfig.bot_id

@@ -33,6 +33,7 @@ export async function checkBotExist(req, res, next) {
         }).populate('fb')
             .populate('business')
             .populate('order_config')
+            .populate('description_job')
 
         if (bot) {
             req.bot = bot
