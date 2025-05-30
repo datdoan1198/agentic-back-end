@@ -4,6 +4,7 @@ import {asyncHandler} from '@/utils/helpers'
 import * as authUserMiddleware from '@/app/middleware/user/auth.middleware'
 import validate from '@/app/middleware/common/validate'
 import * as authUserRequest from '@/app/requests/user/auth.request'
+import {changePassword} from '@/app/controllers/user/auth.controller'
 
 const authRouter = Router()
 
@@ -49,4 +50,19 @@ authRouter.put(
     asyncHandler(validate(authUserRequest.changePassword)),
     asyncHandler(authUser.changePassword)
 )
+
+authRouter.post(
+    '/forgot-password',
+    asyncHandler(validate(authUserRequest.forgotPassword)),
+    asyncHandler(authUserMiddleware.checkEmailExit),
+    asyncHandler(authUser.forgotPassword)
+)
+
+authRouter.put(
+    '/reset-password',
+    asyncHandler(validate(authUserRequest.resetPassword)),
+    asyncHandler(authUserMiddleware.checkCodeForgotPassword),
+    asyncHandler(authUser.changePassword)
+)
+
 export default authRouter

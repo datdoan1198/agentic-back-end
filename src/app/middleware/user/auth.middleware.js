@@ -1,9 +1,11 @@
 import {abort, getToken, verifyToken} from '@/utils/helpers'
 import _ from 'lodash'
 import {tokenBlockList} from '@/app/services/auth.service'
-import {TOKEN_TYPE} from '@/configs'
+import {cache, TOKEN_TYPE} from '@/configs'
 import {User} from '@/models'
 import {JsonWebTokenError, TokenExpiredError} from 'jsonwebtoken'
+
+export const forgotPasswordCode = cache.create('forgot-password-code')
 
 export async function checkValidToken(req, res, next) {
     try {
@@ -38,4 +40,27 @@ export function checkMustChangePassword(req, res, next) {
     }
     req.currentUser.must_change_password = false
     next()
+}
+
+export async function checkEmailExit(req, res, next) {
+    const user = await User.findOne({email: req.body.email})
+    if (user) {
+        req.user = user
+        next()
+        return
+    }
+
+    abort(404, 'Người dùng không tồn tại.')
+}
+
+export async function checkCodeForgotPassword(req, res, next) {
+    const email = await forgotPasswordCode.get(req.body.code)
+    const user = await User.findOne({email})
+    if (user) {
+        req.currentUser = user
+        next()
+        return
+    }
+
+    abort(404, 'Đã hết thời gian đổi mật khẩu.')
 }
