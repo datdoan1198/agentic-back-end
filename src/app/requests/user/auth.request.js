@@ -71,3 +71,12 @@ export const changePassword = Joi.object({
     password: Joi.string().required().min(6).label('Mật khẩu'),
 })
 
+export const forgotPassword = Joi.object({
+    email: Joi.string().email().required().label('Email'),
+})
+
+export const resetPassword = Joi.object({
+    code: Joi.string().required().label('Mã code'),
+    password: Joi.string().required().min(6).label('Mật khẩu'),
+})
+

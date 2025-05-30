@@ -1,8 +1,11 @@
 import * as authService from '@/app/services/auth.service'
-import {db} from '@/configs'
+import {db, cache} from '@/configs'
 import {abort, getToken} from '@/utils/helpers'
 import axios from 'axios'
 import {FacebookService} from '@/models'
+const { customAlphabet } = require('nanoid')
+
+export const forgotPasswordCode = cache.create('forgot-password-code')
 
 export async function register(req, res) {
     await db.transaction(async function (session) {
@@ -85,6 +88,17 @@ export async function callbackFB(req, res) {
         console.error('Error receiveMessageFb:', error.message)
         res.redirect(`${process.env.APP_URL_CLIENT}/bot-chats/${state}/integration?status=FAIL`)
     }
+}
+
+export async function forgotPassword(req, res) {
+    const nanoid = await customAlphabet('0123456789', 4)
+    const code = nanoid()
+    await forgotPasswordCode.set(code, req.user.email, parseInt(process.env.EXPIRATION_TIME_CODE_FORGOT_PASSWORD))
+    await res.sendMail(req.body.email, 'Quên mật khẩu', 'emails/forgot-password', {
+        name: req.user.name,
+        linkResetPassword: `${process.env.APP_URL_CLIENT}/reset-password?code=${code}`
+    } )
+    res.status(201).jsonify()
 }
 
 
