@@ -7,7 +7,7 @@ export async function checkNumberOfLink(req, res, next) {
         status: STATUS_TRAIN.TRAINED
     })
 
-    if (numberLink < 10) {
+    if (numberLink < 20) {
         next()
         return
     }

@@ -330,7 +330,7 @@ export async function handleGetInfoPageWithPuppeteer(url) {
             description: description?.content || '',
             logo: imgLogo,
             favicon,
-            content: await openAIService.summaryWeb(fullText),
+            content: await openAIService.summaryWeb({text: fullText, links: JSON.stringify(links)}),
             links: links
         }
     } catch (error) {
