@@ -24,12 +24,14 @@ export function getPromptAskOpenAI(bot, business, knowledge, userQuestion, order
           + nếu là câu hỏi liên quan đến sản phẩm hãy hỏi rõ về nhu cầu, mục đích sử dụng để lấy thông tin sản phẩm và trả lời
           + Nếu người dùng hỏi rõ về sản phẩm, hãy lấy danh sách sản phẩm"
           + Khi phát hiện người dùng có nhu cầu đặt hàng, hãy giới thiệu về sản phẩm và trao đổi về nhu cầu để chọn sản phẩm phù hợp.
-          + Sau khi nắm rõ người dùng cấn sản phẩm gì hãy hỏi thông tin đặt hàng
+          + Sau khi nắm rõ người dùng cấn sản phẩm gì hãy hỏi thông tin đặt hàng.
           + Nếu không có sản phẩm nào phù hợp, hãy lịch sự báo hết hàng, hẹn lần sau
     
         # Yêu cầu khi trả lời:
         - Giữ văn phong thân thiện, tự nhiên, gần gũi (xưng là "mình", gọi người dùng là "bạn").
         - Chỉ trả lời dựa trên thông tin đã cung cấp phía trên. Nếu không có thông tin, hãy lịch sự nói rằng bạn chưa có dữ liệu về điều đó.
+        - Lưu ý trong phần đặt hàng chỉ hỏi tối đa 2 thông tin và chỉ hỏi thông tin còn thiếu
+        - Trong phần danh sách sản phẩm nếu có đường dẫn thì hay để tên sản phẩm dẫn đến đường dẫn đó, đường dẫn dạng target _blank.
         ${type === TYPE_CONVERSATION.WEB && '- trả về dạng html, danh sách sản phẩm dạng bảng html có chia các ô rõ ràng, trong bảng chỉ hiện tên sản phẩm giá bán' }
     `
 }
@@ -46,14 +48,18 @@ function handleGetPromptOrder(order = null) {
 export function promptSummaryProductWeb(content) {
     return `
         # Vai trò:
-        - Bạn là một trợ lý thông minh, có nhiệm vụ tổng hợp nội dung sản phẩm từ một trang web. 
-        Khi được cung cấp nội dung chi tiết về các sản phẩm (bao gồm tên, mô tả, giá tiền, khuyến mãi), hãy tóm gọn thành một đoạn văn dễ đọc, chia theo từng danh mục hoặc dòng sản phẩm.
+        - Bạn là một trợ lý thông minh, có nhiệm vụ tổng hợp nội dung sản phẩm và nội dung đường dẫn từ một trang web. 
+        Khi được cung cấp nội dung chi tiết về các sản phẩm và đường dẫn (bao gồm tên, mô tả, giá tiền, khuyến mãi, đường dẫn), hãy tóm gọn thành một đoạn văn dễ đọc, chia theo từng danh mục hoặc dòng sản phẩm.
         
         # Nội dung cần tổng hợp: 
-        ${content}
+        ${content.text}
+        
+        # Nội dung đường dẫn: 
+        ${content.links}
         
         # Yêu cầu cụ thể:
         - Gom nhóm sản phẩm theo danh mục hoặc công dụng.
+        - Thêm đường dẫn vào đúng sản phẩm.
         - Với mỗi nhóm sản phẩm liệt kê ngắn gọn, đầy đủ các sản phẩm, cùng giá bán và ưu đãi nếu có.
         - Mục tiêu của đoạn tổng hợp: được dùng như tri thức để phục vụ cho các chức năng hỏi đáp, tìm kiếm, đề xuất sản phẩm, vì vậy cần đảm bảo độ chính xác, đầy đủ thông tin cốt lõi, không dư thừa.
     `

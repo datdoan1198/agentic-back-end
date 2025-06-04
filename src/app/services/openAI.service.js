@@ -99,13 +99,13 @@ export async function summaryWeb(content) {
             model: 'gpt-4o',
             messages,
             temperature: 0.4,
-            max_tokens: 16384,
+            max_tokens: 2048,
         })
 
         return completion.choices[0].message.content.trim()
     } catch (error) {
         console.log(error.message)
-        return content
+        return content.text
     }
 }
 
