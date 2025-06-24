@@ -19,7 +19,7 @@ export async function getListConversation ({q, page, per_page, field, sort_order
         await Conversation.find(filter)
             .skip((page - 1) * per_page)
             .limit(per_page)
-            .sort({[field || 'order']: sort_order || 'asc'})
+            .sort({[field || 'created_at']: sort_order || 'desc'})
             .lean()
     )
 
