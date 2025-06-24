@@ -265,7 +265,7 @@ export async function handleGetInfoPageWithPuppeteer(url) {
         }
         const browser = await puppeteer.launch(option)
         const page = await browser.newPage()
-        await page.goto(url, { waitUntil: 'networkidle2' })
+        await page.goto(url, { waitUntil: 'networkidle2', timeout: 60000 })
 
         const metaTags = await page.evaluate(() => {
             const tags = []
