@@ -37,7 +37,7 @@ linkRouter.post(
     '/:botId/links/:linkId/re-scan',
     asyncHandler(authUserMiddleware.checkValidToken),
     asyncHandler(botUserMiddleware.checkBotExist),
-    asyncHandler(linkUserMiddleware.checkNumberOfLink),
+    // asyncHandler(linkUserMiddleware.checkNumberOfLink),
     asyncHandler(botUserMiddleware.checkLinkExist),
     asyncHandler(botUserController.rescanLink)
 )
